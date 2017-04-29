@@ -1,181 +1,197 @@
-import re
+from __future__ import print_function
 
-global timescale
-global endtime
+import re
 
 class VCDParseError(Exception):
     pass
 
-def list_sigs(file):
-    """
-    Parse input VCD file into data structure,
-    then return just a list of the signal names.
-    """
-    vcd = parse_vcd(file, only_sigs=1)
-    sigs = []
-    for k in vcd.keys():
-        v = vcd[k]
-        nets = v['nets']
-        sigs.extend(n['hier'] + '.' + n['name'] for n in nets)
-    return sigs
+class VerilogVCD(object):
 
-def parse_vcd(file, only_sigs=0, use_stdout=0, siglist=[], opt_timescale=''):
-    """
-    Parse input VCD file into data structure.
-    Also, print t-v pairs to STDOUT, if requested.
-    """
-    global endtime
-    usigs = {}
-    for i in siglist:
-        usigs[i] = 1
-    if len(usigs):
-        all_sigs = 0
-    else:
-        all_sigs = 1
-    data = {}
-    mult = 0
-    num_sigs = 0
-    hier = []
-    time = 0
+    # Verilog standard terminology.
+    _VALUE = set(('0', '1', 'x', 'X', 'z', 'Z'))
+    _VECTOR_VALUE_CHANGE = set(('b', 'B', 'r', 'R'))
 
-    with open(file, 'r') as fh:
-        while True:
-            line = fh.readline()
-            if line == '':
-                break
-            line = line.strip()
-            if line == '':
-                continue
-            if line[0] in ('b', 'B', 'r', 'R'):
-                value, code = line[1:].split()
-                if (code in data):
-                    if (use_stdout):
-                        print( time, value )
-                    else:
-                        if 'tv' not in data[code]:
-                            data[code]['tv'] = []
-                        data[code]['tv'].append((time, value))
-            elif line[0] in ('0', '1', 'x', 'X', 'z', 'Z'):
-                value = line[0]
-                code = line[1:]
-                if (code in data):
-                    if (use_stdout):
-                        print( time, value )
-                    else:
-                        if 'tv' not in data[code]:
-                            data[code]['tv'] = []
-                        data[code]['tv'].append( (time, value) )
-            elif line[0]=='#':
-                time = mult * int(line[1:])
-                endtime = time
-            elif '$enddefinitions' in line:
-                num_sigs = len(data)
-                if (num_sigs == 0):
-                    if (all_sigs):
-                        raise VCDParseError('no signals were found')
-                    else:
-                        raise VCDParseError('no matching signals were found')
-                if ((num_sigs>1) and use_stdout):
-                    raise VCDParseError('too many signals for output to STDOUT')
-                if only_sigs:
+    def __init__(
+        self,
+        vcd_path,
+        only_sigs=False,
+        print_deltas=False,
+        signals=[],
+        timescale='',
+    ):
+        """
+        Parse a VCD file, and store information about it in this object.
+
+        The bulk of the parsed data can be obtained with :func:`parse_data`.
+
+        :type vcd_path: str
+        :param only_sigs: only parse the signal names under $scope and exit.
+                        The return value will only contain the signals section.
+                        This speeds up parsing if you only want the list of signals.
+        :type  only_sigs: bool
+        :type print_deltas: print the value of each signal change as hey are parsed
+        :type print_deltas: bool
+        :param signals: only consider signals in this set
+        :type  signals: Iterable[str]
+        :rtype: Dict[str,Any]
+        """
+        self._data = {}
+        self._endtime = 0
+        self._signals = set()
+        self._timescale = ''
+
+        signals = set(signals)
+        all_sigs = not signals
+        hier = []
+        mult = 0
+        num_sigs = 0
+        time = 0
+        with open(vcd_path, 'r') as f:
+            while True:
+                line = f.readline()
+                if line == '':
                     break
-            elif '$timescale' in line:
-                statement = line
-                if not '$end' in line:
-                    while fh:
-                        line = fh.readline()
-                        statement += line
-                        if '$end' in line:
-                            break
-                mult = calc_mult(statement, opt_timescale)
-            elif '$scope' in line:
-                # assumes all on one line
-                #   $scope module dff end
-                hier.append(line.split()[2])
-            elif '$upscope' in line:
-                hier.pop()
-            elif '$var' in line:
-                # assumes all on one line:
-                #   $var reg 1 *@ data $end
-                #   $var wire 4 ) addr [3:0] $end
-                ls = line.split()
-                type = ls[1]
-                size = ls[2]
-                code = ls[3]
-                name = "".join(ls[4:-1])
-                path = '.'.join(hier)
-                full_name = path + '.' + name
-                if (full_name in usigs) or all_sigs:
-                  if code not in data:
-                      data[code] = {}
-                  if 'nets' not in data[code]:
-                      data[code]['nets'] = []
-                  var_struct = {
-                      'type' : type,
-                      'name' : name,
-                      'size' : size,
-                      'hier' : path,
-                   }
-                  if var_struct not in data[code]['nets']:
-                      data[code]['nets'].append( var_struct )
-    fh.close()
-    return data
+                line0 = line[0]
+                line = line.strip()
+                if line == '':
+                    continue
+                if line0 in self._VECTOR_VALUE_CHANGE:
+                    value, identifier_code = line[1:].split()
+                    self._add_value_identifier_code(time, value, identifier_code, print_deltas)
+                elif line0 in self._VALUE:
+                    value = line0
+                    identifier_code = line[1:]
+                    self._add_value_identifier_code(time, value, identifier_code, print_deltas)
+                elif line0 == '#':
+                    time = mult * int(line[1:])
+                    self._endtime = time
+                elif '$enddefinitions' in line:
+                    if only_sigs:
+                        break
+                elif '$timescale' in line:
+                    statement = line
+                    if not '$end' in line:
+                        while f:
+                            line = f.readline()
+                            statement += line
+                            if '$end' in line:
+                                break
+                    mult = self._calc_multiplier(statement, timescale)
+                elif '$scope' in line:
+                    hier.append(line.split()[2])
+                elif '$upscope' in line:
+                    hier.pop()
+                elif '$var' in line:
+                    ls = line.split()
+                    type = ls[1]
+                    size = ls[2]
+                    identifier_code = ls[3]
+                    name = "".join(ls[4:-1])
+                    path = '.'.join(hier)
+                    full_name = path + '.' + name
+                    if (full_name in signals) or all_sigs:
+                        self._signals.add(full_name)
+                        if identifier_code not in self._data:
+                            self._data[identifier_code] = {}
+                        if 'nets' not in self._data[identifier_code]:
+                            self._data[identifier_code]['nets'] = []
+                        var_struct = {
+                            'name': full_name,
+                            'size': size,
+                            'type': type,
+                        }
+                        if var_struct not in self._data[identifier_code]['nets']:
+                            self._data[identifier_code]['nets'].append(var_struct)
 
-def calc_mult(statement, opt_timescale=''):
-    """
-    Calculate a new multiplier for time values.
-    Input statement is complete timescale, for example:
-      timescale 10ns end
-    Input new_units is one of s|ms|us|ns|ps|fs.
-    Return numeric multiplier.
-    Also sets the package timescale variable.
-    """
-    global timescale
-    fields = statement.split()
-    fields.pop()
-    fields.pop(0)
-    tscale = ''.join(fields)
-    new_units = ''
-    if (opt_timescale != ''):
-        new_units = opt_timescale.lower()
-        new_units = re.sub(r'\s', '', new_units)
-        timescale = '1' + new_units
-    else:
-        timescale = tscale
-        return 1
-    mult = 0
-    units = 0
-    ts_match = re.match(r'(\d+)([a-z]+)', tscale)
-    if ts_match:
-        mult  = int(ts_match.group(1))
-        units = ts_match.group(2).lower()
-    else:
-        raise VCDParseError('unsupported timescale')
-    mults = {
-        'fs' : 1e-15,
-        'ps' : 1e-12,
-        'ns' : 1e-09,
-        'us' : 1e-06,
-        'ms' : 1e-03,
-         's' : 1e-00,
-    }
-    mults_keys = mults.keys()
-    mults_keys.sort(key=lambda x : mults[x])
-    usage = '|'.join(mults_keys)
-    scale = 0
-    if units in mults:
-        scale = mults[units]
-    else:
-        raise VCDParseError('unsupported timescale units')
-    new_scale = 0
-    if new_units in mults:
-        new_scale = mults[new_units]
-    else:
-        raise VCDParseError('illegal user-supplied timescale')
-    return ((mult * scale) / new_scale)
+    def _add_value_identifier_code(self, time, value, identifier_code, print_deltas):
+        if identifier_code in self._data:
+            entry = self._data[identifier_code]
+            if 'tv' not in entry:
+                entry['tv'] = []
+            entry['tv'].append((time, value))
+            if print_deltas:
+                print("{} {} {}".format(time, value, entry['nets'][0]['name']))
 
-def get_timescale():
-    return timescale
+    def get_data(self):
+        """
+        Get the main parsed VCD data.
+        """
+        return self._data
 
-def get_endtime():
-    return endtime
+    def get_endtime(self):
+        """
+        Last timestamp present in the last parsed VCD.
+
+        This can be extracted from the data, but we also cache while parsing.
+
+        :rtype: int
+        """
+        return self._endtime
+
+    def get_signals(self):
+        """
+        Get the set of unique signal names from the parsed VCD.
+
+        This can be extracted from the data, but we also cache while parsing.
+
+        :rtype: Set[str]
+        """
+        return self._signals
+
+    def get_timescale(self):
+        """
+        :rtype: str
+        """
+        return self._timescale
+
+    def _calc_multiplier(self, statement, timescale=''):
+        """
+        Input statement is complete timescale, for example:
+
+            timescale 10ns end
+
+        Input new_units is one of s|ms|us|ns|ps|fs.
+
+        :rtype: float
+        """
+        fields = statement.split()
+        fields.pop()
+        fields.pop(0)
+        tscale = ''.join(fields)
+        new_units = ''
+        if timescale:
+            new_units = timescale.lower()
+            new_units = re.sub(r'\s', '', new_units)
+            self._timescale = '1' + new_units
+        else:
+            self._timescale = tscale
+            return 1
+        mult = 0
+        units = 0
+        ts_match = re.match(r'(\d+)([a-z]+)', tscale)
+        if ts_match:
+            mult  = int(ts_match.group(1))
+            units = ts_match.group(2).lower()
+        else:
+            raise VCDParseError('unsupported timescale')
+        mults = {
+            'fs': 1e-15,
+            'ps': 1e-12,
+            'ns': 1e-09,
+            'us': 1e-06,
+            'ms': 1e-03,
+            's': 1e-00,
+        }
+        mults_keys = mults.keys()
+        mults_keys.sort(key=lambda x : mults[x])
+        scale = 0
+        if units in mults:
+            scale = mults[units]
+        else:
+            raise VCDParseError('unsupported timescale units')
+        new_scale = 0
+        if new_units in mults:
+            new_scale = mults[new_units]
+        else:
+            raise VCDParseError('illegal user-supplied timescale')
+        return ((mult * scale) / new_scale)
