@@ -18,7 +18,6 @@ class VerilogVCD(object):
         print_deltas=False,
         print_dumps=False,
         signals=[],
-        timescale='',
     ):
         """
         Parse a VCD file, and store information about it in this object.
@@ -42,13 +41,11 @@ class VerilogVCD(object):
         self._data = {}
         self._endtime = 0
         self._signals = set()
-        self._timescale = ''
 
         signals = set(signals)
         all_sigs = not signals
         cur_sig_vals = {}
         hier = []
-        mult = 0
         num_sigs = 0
         time = 0
         with open(vcd_path, 'r') as f:
@@ -74,7 +71,7 @@ class VerilogVCD(object):
                         print_deltas, print_dumps, cur_sig_vals
                     )
                 elif line0 == '#':
-                    time = mult * int(line[1:])
+                    time = int(line[1:])
                     self._endtime = time
                     if print_dumps:
                         print(str(time) + ' ' + ' '.join(cur_sig_vals.values()))
@@ -83,15 +80,6 @@ class VerilogVCD(object):
                         break
                     if print_dumps:
                         print('\n'.join(self._data[i]['nets'][0]['name'] for i in cur_sig_vals.keys()) + '\n')
-                elif '$timescale' in line:
-                    statement = line
-                    if not '$end' in line:
-                        while f:
-                            line = f.readline()
-                            statement += line
-                            if '$end' in line:
-                                break
-                    mult = self._calc_multiplier(statement, timescale)
                 elif '$scope' in line:
                     hier.append(line.split()[2])
                 elif '$upscope' in line:
@@ -145,12 +133,6 @@ class VerilogVCD(object):
         """
         return self._signals
 
-    def get_timescale(self):
-        """
-        :rtype: str
-        """
-        return self._timescale
-
     def _add_value_identifier_code(
         self, time, value, identifier_code,
         print_deltas, print_dumps, cur_sig_vals
@@ -164,55 +146,3 @@ class VerilogVCD(object):
                 print("{} {} {}".format(time, value, entry['nets'][0]['name']))
             if print_dumps:
                 cur_sig_vals[identifier_code] = value
-
-    def _calc_multiplier(self, statement, timescale=''):
-        """
-        Input statement is complete timescale, for example:
-
-            timescale 10ns end
-
-        Input new_units is one of s|ms|us|ns|ps|fs.
-
-        :rtype: float
-        """
-        fields = statement.split()
-        fields.pop()
-        fields.pop(0)
-        tscale = ''.join(fields)
-        new_units = ''
-        if timescale:
-            new_units = timescale.lower()
-            new_units = re.sub(r'\s', '', new_units)
-            self._timescale = '1' + new_units
-        else:
-            self._timescale = tscale
-            return 1
-        mult = 0
-        units = 0
-        ts_match = re.match(r'(\d+)([a-z]+)', tscale)
-        if ts_match:
-            mult  = int(ts_match.group(1))
-            units = ts_match.group(2).lower()
-        else:
-            raise VCDParseError('unsupported timescale')
-        mults = {
-            'fs': 1e-15,
-            'ps': 1e-12,
-            'ns': 1e-09,
-            'us': 1e-06,
-            'ms': 1e-03,
-            's': 1e-00,
-        }
-        mults_keys = mults.keys()
-        mults_keys.sort(key=lambda x : mults[x])
-        scale = 0
-        if units in mults:
-            scale = mults[units]
-        else:
-            raise VCDParseError('unsupported timescale units')
-        new_scale = 0
-        if new_units in mults:
-            new_scale = mults[new_units]
-        else:
-            raise VCDParseError('illegal user-supplied timescale')
-        return ((mult * scale) / new_scale)
