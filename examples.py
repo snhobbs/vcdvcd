@@ -51,3 +51,13 @@ signals = sorted(vcd_only_sigs.get_signals())
 if signals:
     VerilogVCD(vcd_path, signals=[signals[0]], print_deltas=True)
 print()
+
+print('# __init__(print_dumps=True)')
+VerilogVCD(vcd_path, print_dumps=True)
+print()
+
+print('# __init__(print_dumps=True, signals=)')
+vcd_only_sigs = VerilogVCD(vcd_path, only_sigs=True)
+signals = sorted(vcd_only_sigs.get_signals())
+VerilogVCD(vcd_path, signals=signals[0:2], print_dumps=True)
+print()

@@ -16,6 +16,7 @@ class VerilogVCD(object):
         vcd_path,
         only_sigs=False,
         print_deltas=False,
+        print_dumps=False,
         signals=[],
         timescale='',
     ):
@@ -31,6 +32,9 @@ class VerilogVCD(object):
         :type  only_sigs: bool
         :type print_deltas: print the value of each signal change as hey are parsed
         :type print_deltas: bool
+        :type print_dumps: print the value of all signals for each time
+                           in which any tracked signal changes
+        :type print_dumps: bool
         :param signals: only consider signals in this set
         :type  signals: Iterable[str]
         :rtype: Dict[str,Any]
@@ -42,6 +46,7 @@ class VerilogVCD(object):
 
         signals = set(signals)
         all_sigs = not signals
+        cur_sig_vals = {}
         hier = []
         mult = 0
         num_sigs = 0
@@ -57,17 +62,27 @@ class VerilogVCD(object):
                     continue
                 if line0 in self._VECTOR_VALUE_CHANGE:
                     value, identifier_code = line[1:].split()
-                    self._add_value_identifier_code(time, value, identifier_code, print_deltas)
+                    self._add_value_identifier_code(
+                        time, value, identifier_code,
+                        print_deltas, print_dumps, cur_sig_vals
+                    )
                 elif line0 in self._VALUE:
                     value = line0
                     identifier_code = line[1:]
-                    self._add_value_identifier_code(time, value, identifier_code, print_deltas)
+                    self._add_value_identifier_code(
+                        time, value, identifier_code,
+                        print_deltas, print_dumps, cur_sig_vals
+                    )
                 elif line0 == '#':
                     time = mult * int(line[1:])
                     self._endtime = time
+                    if print_dumps:
+                        print(str(time) + ' ' + ' '.join(cur_sig_vals.values()))
                 elif '$enddefinitions' in line:
                     if only_sigs:
                         break
+                    if print_dumps:
+                        print('\n'.join(self._data[i]['nets'][0]['name'] for i in cur_sig_vals.keys()) + '\n')
                 elif '$timescale' in line:
                     statement = line
                     if not '$end' in line:
@@ -100,17 +115,9 @@ class VerilogVCD(object):
                             'size': size,
                             'type': type,
                         }
-                        if var_struct not in self._data[identifier_code]['nets']:
-                            self._data[identifier_code]['nets'].append(var_struct)
-
-    def _add_value_identifier_code(self, time, value, identifier_code, print_deltas):
-        if identifier_code in self._data:
-            entry = self._data[identifier_code]
-            if 'tv' not in entry:
-                entry['tv'] = []
-            entry['tv'].append((time, value))
-            if print_deltas:
-                print("{} {} {}".format(time, value, entry['nets'][0]['name']))
+                        self._data[identifier_code]['nets'].append(var_struct)
+                        if print_dumps:
+                            cur_sig_vals[identifier_code] = 'x'
 
     def get_data(self):
         """
@@ -143,6 +150,20 @@ class VerilogVCD(object):
         :rtype: str
         """
         return self._timescale
+
+    def _add_value_identifier_code(
+        self, time, value, identifier_code,
+        print_deltas, print_dumps, cur_sig_vals
+    ):
+        if identifier_code in self._data:
+            entry = self._data[identifier_code]
+            if 'tv' not in entry:
+                entry['tv'] = []
+            entry['tv'].append((time, value))
+            if print_deltas:
+                print("{} {} {}".format(time, value, entry['nets'][0]['name']))
+            if print_dumps:
+                cur_sig_vals[identifier_code] = value
 
     def _calc_multiplier(self, statement, timescale=''):
         """
