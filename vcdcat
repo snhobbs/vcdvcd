@@ -1,0 +1,34 @@
+#!/usr/bin/env python
+
+from __future__ import print_function
+
+import sys
+from argparse import ArgumentParser
+
+from verilog_vcd import VerilogVCD
+
+if __name__ == '__main__':
+    parser = ArgumentParser('Print Verilog value change dump (VCD) files in tabular form.')
+    parser.add_argument(
+        '-l',
+        '--list',
+        action='store_true',
+        default=False,
+        help='only list all signal names and quit',
+    )
+    parser.add_argument(
+        'vcd_path',
+        metavar='vcd-path'
+    )
+    parser.add_argument(
+        'signal_names',
+        help='only print values for these signals',
+        metavar='signal-names',
+        nargs='*'
+    )
+    args = parser.parse_args()
+    if args.list:
+        vcd = VerilogVCD(args.vcd_path, only_sigs=True)
+        print('\n'.join(vcd.get_signals()))
+    else:
+        VerilogVCD(args.vcd_path, print_dumps=True, signals=args.signal_names)

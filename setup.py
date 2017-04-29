@@ -3,5 +3,6 @@ from distutils.core import setup
 setup(
     name='verilog_vcd',
     py_modules=['verilog_vcd'],
-    version='1.12',
+    scripts=['vcdcat'],
+    version='1.0',
 )
