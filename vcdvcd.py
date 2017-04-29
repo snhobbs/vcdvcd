@@ -2,10 +2,7 @@ from __future__ import print_function
 
 import re
 
-class VCDParseError(Exception):
-    pass
-
-class VerilogVCD(object):
+class VCDVCD(object):
 
     # Verilog standard terminology.
     _VALUE = set(('0', '1', 'x', 'X', 'z', 'Z'))

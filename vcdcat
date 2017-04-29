@@ -5,7 +5,7 @@ from __future__ import print_function
 import sys
 from argparse import ArgumentParser
 
-from verilog_vcd import VerilogVCD
+from vcdvcd import VCDVCD
 
 if __name__ == '__main__':
     parser = ArgumentParser('Print Verilog value change dump (VCD) files in tabular form.')
@@ -28,7 +28,7 @@ if __name__ == '__main__':
     )
     args = parser.parse_args()
     if args.list:
-        vcd = VerilogVCD(args.vcd_path, only_sigs=True)
+        vcd = VCDVCD(args.vcd_path, only_sigs=True)
         print('\n'.join(vcd.get_signals()))
     else:
-        VerilogVCD(args.vcd_path, print_dumps=True, signals=args.signal_names)
+        VCDVCD(args.vcd_path, print_dumps=True, signals=args.signal_names)
