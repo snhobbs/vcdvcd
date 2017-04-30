@@ -1,7 +1,5 @@
 from __future__ import print_function
 
-import re
-
 class VCDVCD(object):
 
     # Verilog standard terminology.
@@ -39,7 +37,9 @@ class VCDVCD(object):
                            in which any tracked signal changes
         :type print_dumps: bool
         :param signals: only consider signals in this list.
-                        If not given, all signals are considered.
+                        If empty, all signals are considered.
+                        Printing commands however will only print every wire
+                        once with the first reference name found.
                         Any printing done uses this signal order.
                         If repeated signals are given, they are printed twice.
         :type  signals: List[str]
