@@ -49,7 +49,7 @@ print('# __init__(print_deltas=True, signals=)')
 vcd_only_sigs = VCDVCD(vcd_path, only_sigs=True)
 signals = sorted(vcd_only_sigs.get_signals())
 if signals:
-    VCDVCD(vcd_path, signals=[signals[0]], print_deltas=True)
+    VCDVCD(vcd_path, signals=signals[0:0], print_deltas=True)
 print()
 
 print('# __init__(print_dumps=True)')

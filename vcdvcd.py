@@ -31,13 +31,16 @@ class VCDVCD(object):
         :type print_dumps: print the value of all signals for each time
                            in which any tracked signal changes
         :type print_dumps: bool
-        :param signals: only consider signals in this set
-        :type  signals: Iterable[str]
+        :param signals: only consider signals in this list.
+                        If not given, all signals are considered.
+                        Any printing done uses this signal order.
+        :type  signals: List[str]
         :rtype: Dict[str,Any]
         """
         self._data = {}
         self._endtime = 0
         self._signals = set()
+        self._value_changed = False
 
         signals = set(signals)
         all_sigs = not signals
@@ -70,13 +73,22 @@ class VCDVCD(object):
                 elif line0 == '#':
                     time = int(line[1:])
                     self._endtime = time
-                    if print_dumps:
-                        print(str(time) + ' ' + ' '.join(cur_sig_vals.values()))
+                    if print_dumps: # and self._value_changed
+                        ss = []
+                        ss.append('{}'.format(time))
+                        for identifier_code, value in cur_sig_vals.iteritems():
+                            size = int(self._data[identifier_code]['size'])
+                            ss.append('{0:>{1}s}'.format(value, size))
+                        print(' '.join(ss))
+                    self._value_changed = False
                 elif '$enddefinitions' in line:
                     if only_sigs:
                         break
                     if print_dumps:
-                        print('\n'.join(self._data[i]['nets'][0]['name'] for i in cur_sig_vals.keys()) + '\n')
+                        print("0 time")
+                        for i, identifier_code in enumerate(cur_sig_vals.keys(), 1):
+                            print("{} {}".format(i, self._data[identifier_code]['references'][0] ))
+                        print()
                 elif '$scope' in line:
                     hier.append(line.split()[2])
                 elif '$upscope' in line:
@@ -88,19 +100,16 @@ class VCDVCD(object):
                     identifier_code = ls[3]
                     name = "".join(ls[4:-1])
                     path = '.'.join(hier)
-                    full_name = path + '.' + name
-                    if (full_name in signals) or all_sigs:
-                        self._signals.add(full_name)
+                    reference = path + '.' + name
+                    if (reference in signals) or all_sigs:
+                        self._signals.add(reference)
                         if identifier_code not in self._data:
-                            self._data[identifier_code] = {}
-                        if 'nets' not in self._data[identifier_code]:
-                            self._data[identifier_code]['nets'] = []
-                        var_struct = {
-                            'name': full_name,
-                            'size': size,
-                            'type': type,
-                        }
-                        self._data[identifier_code]['nets'].append(var_struct)
+                            self._data[identifier_code] = {
+                                'references': [],
+                                'size': size,
+                                'var_type': type,
+                            }
+                        self._data[identifier_code]['references'].append(reference)
                         if print_dumps:
                             cur_sig_vals[identifier_code] = 'x'
 
@@ -140,6 +149,7 @@ class VCDVCD(object):
                 entry['tv'] = []
             entry['tv'].append((time, value))
             if print_deltas:
-                print("{} {} {}".format(time, value, entry['nets'][0]['name']))
+                print("{} {} {}".format(time, value, entry['references'][0]))
             if print_dumps:
+                self._value_changed = True
                 cur_sig_vals[identifier_code] = value
