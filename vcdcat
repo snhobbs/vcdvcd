@@ -31,4 +31,9 @@ if __name__ == '__main__':
         vcd = VCDVCD(args.vcd_path, only_sigs=True)
         print('\n'.join(vcd.get_signals()))
     else:
-        VCDVCD(args.vcd_path, print_dumps=True, signals=args.signal_names)
+        VCDVCD(
+            args.vcd_path,
+            print_dumps=True,
+            signals=args.signal_names,
+            store_tvs=False
+        )
