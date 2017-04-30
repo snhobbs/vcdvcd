@@ -12,6 +12,7 @@ class VCDVCD(object):
         only_sigs=False,
         print_deltas=False,
         print_dumps=False,
+        print_dumps_deltas=True,
         signals=[],
         store_tvs=True,
     ):
@@ -36,6 +37,8 @@ class VCDVCD(object):
         :type print_dumps: print the value of all signals for each time
                            in which any tracked signal changes
         :type print_dumps: bool
+        :type print_dumps_deltas: only dump selected signals if one of them just changed
+        :type print_dumps_deltas: bool
         :param signals: only consider signals in this list.
                         If empty, all signals are considered.
                         Printing commands however will only print every wire
@@ -49,6 +52,7 @@ class VCDVCD(object):
         self._endtime = 0
         self._signals = []
         self._store_tvs = store_tvs
+        self._signal_changed = False
 
         all_sigs = not signals
         cur_sig_vals = {}
@@ -79,17 +83,18 @@ class VCDVCD(object):
                         print_deltas, print_dumps, cur_sig_vals
                     )
                 elif line0 == '#':
-                    time = int(line[1:])
-                    self._endtime = time
-                    if print_dumps:
+                    if print_dumps and (not print_dumps_deltas or self._signal_changed):
                         ss = []
                         ss.append('{}'.format(time))
                         for ref in print_dumps_refs:
                             identifier_code = references_to_ids[ref]
                             value = cur_sig_vals[identifier_code]
                             size = int(self._data[identifier_code]['size'])
-                            ss.append('{0:>{1}s}'.format(value, size))
+                            ss.append('{0:>{1}s}'.format(self._to_hex(value), ((size / 16) + 1)))
                         print(' '.join(ss))
+                    time = int(line[1:])
+                    self._endtime = time
+                    self._signal_changed = False
                 elif '$enddefinitions' in line:
                     if only_sigs:
                         break
@@ -160,6 +165,7 @@ class VCDVCD(object):
     ):
         if identifier_code in self._data:
             entry = self._data[identifier_code]
+            self._signal_changed = True
             if self._store_tvs:
                 if 'tv' not in entry:
                     entry['tv'] = []
@@ -168,3 +174,10 @@ class VCDVCD(object):
                 print("{} {} {}".format(time, value, entry['references'][0]))
             if print_dumps:
                 cur_sig_vals[identifier_code] = value
+
+    @staticmethod
+    def _to_hex(s):
+        for c in s:
+            if not c in '01':
+                return c
+        return hex(int(s, 2))[2:]
