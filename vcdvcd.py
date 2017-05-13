@@ -1,5 +1,7 @@
 from __future__ import print_function
 
+import math
+
 class VCDVCD(object):
 
     # Verilog standard terminology.
@@ -59,6 +61,7 @@ class VCDVCD(object):
         hier = []
         num_sigs = 0
         references_to_ids = {}
+        references_to_widths = {}
         time = 0
         with open(vcd_path, 'r') as f:
             while True:
@@ -86,11 +89,10 @@ class VCDVCD(object):
                     if print_dumps and (not print_dumps_deltas or self._signal_changed):
                         ss = []
                         ss.append('{}'.format(time))
-                        for ref in print_dumps_refs:
+                        for i, ref in enumerate(print_dumps_refs):
                             identifier_code = references_to_ids[ref]
                             value = cur_sig_vals[identifier_code]
-                            size = int(self._data[identifier_code]['size'])
-                            ss.append('{0:>{1}s}'.format(self._to_hex(value), ((size / 16) + 1)))
+                            ss.append('{0:>{1}s}'.format(self._to_hex(value), references_to_widths[ref]))
                         print(' '.join(ss))
                     time = int(line[1:])
                     self._endtime = time
@@ -103,10 +105,21 @@ class VCDVCD(object):
                         if signals:
                             print_dumps_refs = signals
                         else:
-                            print_dumps_refs = [self._data[i]['references'][0] for i in cur_sig_vals.keys()]
-                        for i,s in enumerate(print_dumps_refs, 1):
-                            print('{} {}'.format(i, s))
+                            print_dumps_refs = sorted(self._data[i]['references'][0] for i in cur_sig_vals.keys())
+                        for i, ref in enumerate(print_dumps_refs, 1):
+                            print('{} {}'.format(i, ref))
+                            if i == 0:
+                                i = 1
+                            identifier_code = references_to_ids[ref]
+                            size = int(self._data[identifier_code]['size'])
+                            width = max(((size / 4)), int(math.floor(math.log10(i))) + 1)
+                            references_to_widths[ref] = width
                         print()
+                        print('0 '.format(i, ), end='')
+                        for i, ref in enumerate(print_dumps_refs, 1):
+                            print('{0:>{1}d} '.format(i, references_to_widths[ref]), end='')
+                        print()
+                        print('=' * (sum(references_to_widths.values()) + len(references_to_widths) + 1))
                 elif '$scope' in line:
                     hier.append(line.split()[2])
                 elif '$upscope' in line:
