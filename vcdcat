@@ -58,13 +58,6 @@ Now get the values for signals:
         help='signal names must match exactly, instead of the default substring match',
     )
     parser.add_argument(
-        '-x',
-        '--exact',
-        action='store_true',
-        default=False,
-        help='signal names must match exactly, instead of the default substring match',
-    )
-    parser.add_argument(
         'vcd_path',
         metavar='vcd-path'
     )
