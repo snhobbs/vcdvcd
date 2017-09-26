@@ -184,7 +184,7 @@ class VCDVCD(object):
                     entry['tv'] = []
                 entry['tv'].append((time, value))
             if print_deltas:
-                print("{} {} {}".format(time, value, entry['references'][0]))
+                print("{} {} {}".format(time, self._to_hex(value), entry['references'][0]))
             if print_dumps:
                 cur_sig_vals[identifier_code] = value
 

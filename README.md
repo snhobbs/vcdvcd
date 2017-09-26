@@ -18,9 +18,13 @@ Install:
 
 Nifty terminal CLI VCD viewer:
 
-    ./vcdcat counter_tb.vcd
+    vcdcat -h
 
-Sample output:
+Dump all signal values:
+
+    vcdcat counter_tb.vcd
+
+Output:
 
     0 time
     1 counter_tb.clock
@@ -57,3 +61,67 @@ Sample output:
     23 0 1 1 0 1
     24 1 1 2 0 2
     25 0 0 2 0 2
+
+Dump all deltas:
+
+    vcdcat -d counter_tb.vcd
+
+Output:
+
+    0 x counter_tb.top.out[1:0]
+    0 0 counter_tb.reset
+    0 0 counter_tb.enable
+    0 1 counter_tb.clock
+    0 x counter_tb.out[1:0]
+    1 0 counter_tb.clock
+    1 1 counter_tb.reset
+    2 0 counter_tb.out[1:0]
+    2 0 counter_tb.top.out[1:0]
+    2 1 counter_tb.clock
+    3 0 counter_tb.clock
+    3 0 counter_tb.reset
+    4 1 counter_tb.clock
+    5 0 counter_tb.clock
+    5 1 counter_tb.enable
+    6 1 counter_tb.out[1:0]
+    6 1 counter_tb.top.out[1:0]
+    6 1 counter_tb.clock
+    7 0 counter_tb.clock
+    8 2 counter_tb.out[1:0]
+    8 2 counter_tb.top.out[1:0]
+    8 1 counter_tb.clock
+    9 0 counter_tb.clock
+    10 3 counter_tb.out[1:0]
+    10 3 counter_tb.top.out[1:0]
+    10 1 counter_tb.clock
+    11 0 counter_tb.clock
+    12 0 counter_tb.out[1:0]
+    12 0 counter_tb.top.out[1:0]
+    12 1 counter_tb.clock
+    13 0 counter_tb.clock
+    14 1 counter_tb.out[1:0]
+    14 1 counter_tb.top.out[1:0]
+    14 1 counter_tb.clock
+    15 0 counter_tb.clock
+    16 2 counter_tb.out[1:0]
+    16 2 counter_tb.top.out[1:0]
+    16 1 counter_tb.clock
+    17 0 counter_tb.clock
+    18 3 counter_tb.out[1:0]
+    18 3 counter_tb.top.out[1:0]
+    18 1 counter_tb.clock
+    19 0 counter_tb.clock
+    20 0 counter_tb.out[1:0]
+    20 0 counter_tb.top.out[1:0]
+    20 1 counter_tb.clock
+    21 0 counter_tb.clock
+    22 1 counter_tb.out[1:0]
+    22 1 counter_tb.top.out[1:0]
+    22 1 counter_tb.clock
+    23 0 counter_tb.clock
+    24 2 counter_tb.out[1:0]
+    24 2 counter_tb.top.out[1:0]
+    24 1 counter_tb.clock
+    25 0 counter_tb.clock
+    25 0 counter_tb.enable
+    26 1 counter_tb.clock

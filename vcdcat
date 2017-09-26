@@ -44,6 +44,13 @@ Now get the values for signals:
         formatter_class=RawTextHelpFormatter,
     )
     parser.add_argument(
+        '-d',
+        '--deltas',
+        action='store_true',
+        default=False,
+        help='only show signal that changed since last step',
+    )
+    parser.add_argument(
         '-l',
         '--list',
         action='store_true',
@@ -92,7 +99,8 @@ Now get the values for signals:
             signals = []
         VCDVCD(
             args.vcd_path,
-            print_dumps=True,
+            print_deltas=args.deltas,
+            print_dumps=(not args.deltas),
             signals=signals,
-            store_tvs=False
+            store_tvs=False,
         )
