@@ -15,6 +15,7 @@ class VCDVCD(object):
         print_deltas=False,
         print_dumps=False,
         print_dumps_deltas=True,
+        # TODO: make the default None, and return empty in that case.
         signals=[],
         store_tvs=True,
     ):

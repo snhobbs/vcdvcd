@@ -2,8 +2,9 @@
 
 from __future__ import print_function
 
-import sys
 from argparse import ArgumentParser, RawTextHelpFormatter
+import re
+import sys
 
 from vcdvcd import VCDVCD
 
@@ -57,12 +58,20 @@ Now get the values for signals:
         default=False,
         help='list signal names and quit',
     )
-    parser.add_argument(
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
         '-x',
         '--exact',
         action='store_true',
         default=False,
         help='signal names must match exactly, instead of the default substring match',
+    )
+    group.add_argument(
+        '-r',
+        '--regexp',
+        action='store_true',
+        default=False,
+        help='signal names are treated as Python regular expressions',
     )
     parser.add_argument(
         'vcd_path',
@@ -83,8 +92,11 @@ Now get the values for signals:
         else:
             selected_signals = []
             for s in args.signals:
+                r = re.compile(s)
                 for a in all_signals:
-                    if s in a:
+                    if args.regexp and r.search(a):
+                        selected_signals.append(a)
+                    elif s in a:
                         selected_signals.append(a)
     if args.list:
         if args.signals:
