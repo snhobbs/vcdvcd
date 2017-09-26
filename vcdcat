@@ -87,17 +87,16 @@ Now get the values for signals:
     vcd = VCDVCD(args.vcd_path, only_sigs=True)
     all_signals = vcd.get_signals()
     if args.signals:
-        if args.exact:
-            selected_signals = args.signals
-        else:
-            selected_signals = []
-            for s in args.signals:
-                r = re.compile(s)
-                for a in all_signals:
-                    if args.regexp and r.search(a):
-                        selected_signals.append(a)
-                    elif s in a:
-                        selected_signals.append(a)
+        selected_signals = []
+        for s in args.signals:
+            r = re.compile(s)
+            for a in all_signals:
+                if (
+                    (args.regexp and r.search(a)) or
+                    (args.exact and s == a) or
+                    (s in a)
+                ):
+                    selected_signals.append(a)
     if args.list:
         if args.signals:
             signals = selected_signals
