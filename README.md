@@ -1,6 +1,6 @@
 # VCDVCD
 
-Python Verilog value change dump (VCD) parser.
+Python Verilog value change dump (VCD) parser library + a nifty VCD command line viewer.
 
 The format is defined by the Verilog standard, and can be generated with `$dumpvars`.
 
