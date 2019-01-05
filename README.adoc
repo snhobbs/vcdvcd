@@ -1,4 +1,4 @@
-= VCDVCD
+= vcdvcd
 :idprefix:
 :idseparator: -
 :sectanchors:
@@ -27,7 +27,7 @@ Install master directly from this repository:
 python -m pip install --editable . --user
 ....
 
-Use <<vcdcat>> directly from this repo installing:
+Use <<vcdcat>> directly from this repo without installing:
 
 ....
 ./vcdcat -h
@@ -38,13 +38,13 @@ Use <<vcdcat>> directly from this repo installing:
 Nifty terminal CLI VCD viewer:
 
 ....
-vcdcat -h
+./vcdcat -h
 ....
 
 Dump all signal values:
 
 ....
-vcdcat counter_tb.vcd
+./vcdcat counter_tb.vcd
 ....
 
 Output:
@@ -87,10 +87,34 @@ Output:
 25 0 0 2 0 2
 ....
 
+Dump only a some of the signals:
+
+....
+./vcdcat counter_tb.vcd top.enable top.reset
+....
+
+Output:
+
+....
+0 time
+1 counter_tb.top.enable
+2 counter_tb.top.reset
+
+0 1 2
+=====
+0 0 0
+1 0 1
+3 0 0
+5 1 0
+25 0 0
+....
+
+Only times for which at least one signal changed are shown.
+
 Dump only the signals that changed for each time:
 
 ....
-vcdcat -d counter_tb.vcd
+./vcdcat -d counter_tb.vcd
 ....
 
 Output:
