@@ -198,7 +198,7 @@ Library usage examples:
 Create a tag and push it:
 
 ....
-git tag -a v1.0.1 -m v1.0.0
+git tag -a v1.0.1 -m v1.0.1
 git push --follow-tags
 ....
 
