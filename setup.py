@@ -8,12 +8,13 @@ def readme():
 
 setup(
     name='vcdvcd',
-    version='1.0.3',
+    version='1.0.5',
     description='Python Verilog value change dump (VCD) parser library + the nifty vcdcat VCD command line viewer',
     long_description=readme(),
     url='https://github.com/cirosantilli/vcdvcd',
     author='Ciro Santilli',
     author_email='ciro.santilli.contact@gmail.com',
     packages=find_packages(),
+    include_package_data=True,
     scripts=['vcdcat'],
 )
