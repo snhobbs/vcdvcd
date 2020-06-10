@@ -113,7 +113,7 @@ class VCDVCD(object):
                                 i = 1
                             identifier_code = references_to_ids[ref]
                             size = int(self._data[identifier_code]['size'])
-                            width = max(((size / 4)), int(math.floor(math.log10(i))) + 1)
+                            width = max(((size // 4)), int(math.floor(math.log10(i))) + 1)
                             references_to_widths[ref] = width
                         print()
                         print('0 '.format(i, ), end='')
