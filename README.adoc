@@ -195,17 +195,19 @@ Library usage examples:
 
 == Release procedure
 
-Create a tag and push it:
-
-....
-git tag -a v1.0.1 -m v1.0.1
-git push --follow-tags
-....
-
 Update the `version` field in `setup.py`:
 
 ....
 vim setup.py
+....
+
+Create a tag and push it:
+
+....
+git add setup.py
+git commit -m v1.0.1 v1.0.1
+git tag -a v1.0.1 -m v1.0.1
+git push --follow-tags
 ....
 
 Push to PyPi:
