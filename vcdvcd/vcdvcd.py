@@ -36,12 +36,12 @@ class VCDVCD(object):
                         The return value will only contain the signals section.
                         This speeds up parsing if you only want the list of signals.
         :type  only_sigs: bool
-        :type print_deltas: print the value of each signal change as hey are parsed
+        :param print_deltas: print the value of each signal change as hey are parsed
         :type print_deltas: bool
-        :type print_dumps: print the value of all signals for each time
+        :param print_dumps: print the value of all signals for each time
                            in which any tracked signal changes
         :type print_dumps: bool
-        :type print_dumps_deltas: only dump selected signals if one of them just changed
+        :param print_dumps_deltas: only dump selected signals if one of them just changed
         :type print_dumps_deltas: bool
         :param signals: only consider signals in this list.
                         If empty, all signals are considered.

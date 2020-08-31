@@ -21,11 +21,14 @@ Install the latest release:
 python -m pip install --user vcdvcd
 ....
 
-Install master directly from this repository:
+Install master directly from this repository for development with `--editable`:
 
 ....
+git clone https://github.com/cirosantilli/vcdvcd
 python -m pip install --editable . --user
 ....
+
+This allows you to direcly edit the source code here and see updates to importers from anywhere as shown at: https://stackoverflow.com/questions/35064426/when-would-the-e-editable-option-be-useful-with-pip-install/63353319#63353319[].
 
 Use <<vcdcat>> directly from this repo without installing:
 
