@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import math
+import re
 
 class VCDVCD(object):
 
@@ -56,6 +57,7 @@ class VCDVCD(object):
         self._signals = []
         self._store_tvs = store_tvs
         self._signal_changed = False
+        self._timescale = {}
 
         all_sigs = not signals
         cur_sig_vals = {}
@@ -145,6 +147,27 @@ class VCDVCD(object):
                         references_to_ids[reference] = identifier_code
                         if print_dumps:
                             cur_sig_vals[identifier_code] = 'x'
+                elif '$timescale' in line:
+                    if not '$end' in line:
+                        while True:
+                            line += " " + f.readline().strip().rstrip()
+                            if '$end'  in line:
+                                break
+                    timescale = ' '.join(line.split()[1:-1])
+                    number    = re.findall(r"\d+|$", timescale)[0]
+                    unit      = re.findall(r"s|ms|us|ns|ps|fs|$", timescale)[0]
+                    factor = {
+                        "s":  1e0,
+                        "ms": 1e-3,
+                        "us": 1e-6,
+                        "ns": 1e-9,
+                        "ps": 1e-12,
+                        "fs": 1e-15,
+                    }[unit]
+                    self._timescale["timescale"] = int(number) * factor
+                    self._timescale["number"] = int(number)
+                    self._timescale["unit"]   = unit
+                    self._timescale["factor"] = factor
 
     def get_data(self):
         """
@@ -172,6 +195,19 @@ class VCDVCD(object):
         :rtype: List[str]
         """
         return self._signals
+
+    def get_timescale(self):
+        """
+        Get a dictionary of key/value pairs describing the timescale.
+
+        List of keys:
+
+            "timescale": The timescale in seconds (SI unit)
+            "number"   : The time number as specified in the VCD file
+            "unit"     : The time unit as specified in the VCD file
+            "factor"   : The numerical factor derived from the unit
+        """
+        return self._timescale
 
     def _add_value_identifier_code(
         self, time, value, identifier_code,
