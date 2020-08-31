@@ -49,7 +49,7 @@ Now get the values for signals:
         '--deltas',
         action='store_true',
         default=False,
-        help='only show signal that changed since last step',
+        help='https://github.com/cirosantilli/vcdvcd#vcdcat-deltas',
     )
     parser.add_argument(
         '-l',

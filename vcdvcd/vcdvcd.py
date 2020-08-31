@@ -16,8 +16,7 @@ class VCDVCD(object):
         print_deltas=False,
         print_dumps=False,
         print_dumps_deltas=True,
-        # TODO: make the default None, and return empty in that case.
-        signals=[],
+        signals=None,
         store_tvs=True,
     ):
         """
@@ -26,7 +25,14 @@ class VCDVCD(object):
         The bulk of the parsed data can be obtained with :func:`parse_data`.
 
         :type data: Dict[str,Any]
-        :ivar data: The main parsed VCD data.
+        :ivar data: Parsed VCD data presented in an per-signal indexed list of deltas.
+
+                    Binary search in this data presentation makes it possible
+                    to efficienty find the value of a given signal. TODO implement helper.
+
+        :type deltas: Dict[str,Any]
+        :ivar deltas: Parsed VCD data presented in exactly the same format as the input,
+                    with all signals mixed up, but sorted in time.
 
         :ivar endtime: Last timestamp present in the last parsed VCD.
 
@@ -35,7 +41,7 @@ class VCDVCD(object):
 
         :ivar references_to_ids: map of long-form human readable signal names to the short
                        style VCD dump values
-        :type signals: Dict[str,str]
+        :type references_to_ids: Dict[str,str]
 
         :ivar signals: The set of unique signal names from the parsed VCD,
                        in the order they are defined in the file.
@@ -63,19 +69,18 @@ class VCDVCD(object):
                          fast random access.
 
         :type  store_tv: bool
+
         :param only_sigs: only parse the signal names under $scope and exit.
                         The return value will only contain the signals section.
                         This speeds up parsing if you only want the list of signals.
         :type  only_sigs: bool
 
-        :param print_deltas: print the value of each signal change as hey are parsed
-        :type print_deltas: bool
-
-        :param print_dumps: print the value of all signals for each time
-                           in which any tracked signal changes
+        :param print_dumps: print the values of signals as they are parsed
         :type print_dumps: bool
 
-        :param print_dumps_deltas: only dump selected signals if one of them just changed
+        :param print_dumps_deltas: controls how print_dumps prints exactly:
+                        - if True, print only values that changed on the latest time
+                        - if False, print all values at all times
         :type print_dumps_deltas: bool
 
         :param signals: only consider signals in this list.
@@ -95,6 +100,8 @@ class VCDVCD(object):
         self._store_tvs = store_tvs
         self._signal_changed = False
 
+        if signals is None:
+            signals = []
         all_sigs = not signals
         cur_sig_vals = {}
         hier = []
@@ -204,30 +211,6 @@ class VCDVCD(object):
                     self.timescale["unit"]   = unit
                     self.timescale["factor"] = factor
 
-    def get_data(self):
-        """
-        Deprecated, used the data instead.
-        """
-        return self.data
-
-    def get_endtime(self):
-        """
-        Deprecated, use endtime.
-        """
-        return self.endtime
-
-    def get_signals(self):
-        """
-        Deprecated, use signals.
-        """
-        return self.signals
-
-    def get_timescale(self):
-        """
-        Deprecated, use timescale.
-        """
-        return self.timescale
-
     def _add_value_identifier_code(
         self, time, value, identifier_code,
         print_deltas, print_dumps, cur_sig_vals
@@ -250,3 +233,37 @@ class VCDVCD(object):
             if not c in '01':
                 return c
         return hex(int(s, 2))[2:]
+
+    def get_data(self):
+        """
+        Deprecated, use the member variable directly.
+        """
+        return self.data
+
+    def get_endtime(self):
+        """
+        Deprecated, use the member variable directly.
+        """
+        return self.endtime
+
+    def get_signals(self):
+        """
+        Deprecated, use the member variable directly.
+        """
+        return self.signals
+
+    def get_timescale(self):
+        """
+        Deprecated, use the member variable directly.
+        """
+        return self.timescale
+
+    def ref(self, refname):
+        """
+        :type refname: str
+        :param refname: human readable name of a signal (reference)
+
+        :return: the signal for the given reference
+        """
+        return self.data[self.references_to_ids[refname]]
+
