@@ -25,24 +25,59 @@ class VCDVCD(object):
 
         The bulk of the parsed data can be obtained with :func:`parse_data`.
 
+        :type data: Dict[str,Any]
+        :ivar data: The main parsed VCD data.
+
+        :ivar endtime: Last timestamp present in the last parsed VCD.
+
+                       This can be extracted from the data, but we also cache while parsing.
+        :type endtime: int
+
+        :ivar references_to_ids: map of long-form human readable signal names to the short
+                       style VCD dump values
+        :type signals: Dict[str,str]
+
+        :ivar signals: The set of unique signal names from the parsed VCD,
+                       in the order they are defined in the file.
+
+                        This can be extracted from the data, but we also cache while parsing.
+        :type signals: List[str]
+
+        :ivar timescale: A dictionary of key/value pairs describing the timescale.
+
+                        List of keys:
+
+                        - "timescale": timescale in seconds (SI unit)
+                        - "number": time number as specified in the VCD file
+                        - "unit": time unit as specified in the VCD file
+                        - "factor": numerical factor derived from the unit
+        :type timescale: Dict
+
         :type vcd_path: str
+        :param vcd_path: path to the VCD file to parse
+
         :param store_tv: if False, don't store time values in the data
                          Still parse them sequentially however, which may
                          make them be printed if printing is enabled.
                          This makes huge files more manageable, but prevents
                          fast random access.
+
         :type  store_tv: bool
         :param only_sigs: only parse the signal names under $scope and exit.
                         The return value will only contain the signals section.
                         This speeds up parsing if you only want the list of signals.
         :type  only_sigs: bool
+
         :param print_deltas: print the value of each signal change as hey are parsed
         :type print_deltas: bool
+
         :param print_dumps: print the value of all signals for each time
                            in which any tracked signal changes
         :type print_dumps: bool
+
         :param print_dumps_deltas: only dump selected signals if one of them just changed
         :type print_dumps_deltas: bool
+
         :param signals: only consider signals in this list.
                         If empty, all signals are considered.
                         Printing commands however will only print every wire
@@ -50,20 +85,20 @@ class VCDVCD(object):
                         Any printing done uses this signal order.
                         If repeated signals are given, they are printed twice.
         :type  signals: List[str]
-        :rtype: Dict[str,Any]
         """
-        self._data = {}
-        self._endtime = 0
-        self._signals = []
+        self.data = {}
+        self.endtime = 0
+        self.references_to_ids = {}
+        self.signals = []
+        self.timescale = {}
+
         self._store_tvs = store_tvs
         self._signal_changed = False
-        self._timescale = {}
 
         all_sigs = not signals
         cur_sig_vals = {}
         hier = []
         num_sigs = 0
-        references_to_ids = {}
         references_to_widths = {}
         time = 0
         with open(vcd_path, 'r') as f:
@@ -93,12 +128,12 @@ class VCDVCD(object):
                         ss = []
                         ss.append('{}'.format(time))
                         for i, ref in enumerate(print_dumps_refs):
-                            identifier_code = references_to_ids[ref]
+                            identifier_code = self.references_to_ids[ref]
                             value = cur_sig_vals[identifier_code]
                             ss.append('{0:>{1}s}'.format(self._to_hex(value), references_to_widths[ref]))
                         print(' '.join(ss))
                     time = int(line[1:])
-                    self._endtime = time
+                    self.endtime = time
                     self._signal_changed = False
                 elif '$enddefinitions' in line:
                     if only_sigs:
@@ -108,13 +143,13 @@ class VCDVCD(object):
                         if signals:
                             print_dumps_refs = signals
                         else:
-                            print_dumps_refs = sorted(self._data[i]['references'][0] for i in cur_sig_vals.keys())
+                            print_dumps_refs = sorted(self.data[i]['references'][0] for i in cur_sig_vals.keys())
                         for i, ref in enumerate(print_dumps_refs, 1):
                             print('{} {}'.format(i, ref))
                             if i == 0:
                                 i = 1
-                            identifier_code = references_to_ids[ref]
-                            size = int(self._data[identifier_code]['size'])
+                            identifier_code = self.references_to_ids[ref]
+                            size = int(self.data[identifier_code]['size'])
                             width = max(((size // 4)), int(math.floor(math.log10(i))) + 1)
                             references_to_widths[ref] = width
                         print()
@@ -136,15 +171,15 @@ class VCDVCD(object):
                     path = '.'.join(hier)
                     reference = path + '.' + name
                     if (reference in signals) or all_sigs:
-                        self._signals.append(reference)
-                        if identifier_code not in self._data:
-                            self._data[identifier_code] = {
+                        self.signals.append(reference)
+                        if identifier_code not in self.data:
+                            self.data[identifier_code] = {
                                 'references': [],
                                 'size': size,
                                 'var_type': type,
                             }
-                        self._data[identifier_code]['references'].append(reference)
-                        references_to_ids[reference] = identifier_code
+                        self.data[identifier_code]['references'].append(reference)
+                        self.references_to_ids[reference] = identifier_code
                         if print_dumps:
                             cur_sig_vals[identifier_code] = 'x'
                 elif '$timescale' in line:
@@ -164,57 +199,41 @@ class VCDVCD(object):
                         "ps": 1e-12,
                         "fs": 1e-15,
                     }[unit]
-                    self._timescale["timescale"] = int(number) * factor
-                    self._timescale["number"] = int(number)
-                    self._timescale["unit"]   = unit
-                    self._timescale["factor"] = factor
+                    self.timescale["timescale"] = int(number) * factor
+                    self.timescale["number"] = int(number)
+                    self.timescale["unit"]   = unit
+                    self.timescale["factor"] = factor
 
     def get_data(self):
         """
-        Get the main parsed VCD data.
+        Deprecated, used the data instead.
         """
-        return self._data
+        return self.data
 
     def get_endtime(self):
         """
-        Last timestamp present in the last parsed VCD.
-
-        This can be extracted from the data, but we also cache while parsing.
-
-        :rtype: int
+        Deprecated, use endtime.
         """
-        return self._endtime
+        return self.endtime
 
     def get_signals(self):
         """
-        Get the set of unique signal names from the parsed VCD,
-        in the order they are defined in the file.
-
-        This can be extracted from the data, but we also cache while parsing.
-
-        :rtype: List[str]
+        Deprecated, use signals.
         """
-        return self._signals
+        return self.signals
 
     def get_timescale(self):
         """
-        Get a dictionary of key/value pairs describing the timescale.
-
-        List of keys:
-
-            "timescale": The timescale in seconds (SI unit)
-            "number"   : The time number as specified in the VCD file
-            "unit"     : The time unit as specified in the VCD file
-            "factor"   : The numerical factor derived from the unit
+        Deprecated, use timescale.
         """
-        return self._timescale
+        return self.timescale
 
     def _add_value_identifier_code(
         self, time, value, identifier_code,
         print_deltas, print_dumps, cur_sig_vals
     ):
-        if identifier_code in self._data:
-            entry = self._data[identifier_code]
+        if identifier_code in self.data:
+            entry = self.data[identifier_code]
             self._signal_changed = True
             if self._store_tvs:
                 if 'tv' not in entry:

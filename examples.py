@@ -13,38 +13,46 @@ else:
     vcd_path = 'counter_tb.vcd'
 pp = PrettyPrinter()
 
-print('# get_data()')
+print('# data')
 vcd = VCDVCD(vcd_path)
-pp.pprint(vcd.get_data())
+pp.pprint(vcd.data)
+print()
+
+print('# references_to_ids()')
+pp.pprint(vcd.references_to_ids)
+print()
+
+print('# timescale')
+pp.pprint(vcd.timescale)
 print()
 
 print('# get_data(only_sigs=True)')
 vcd = VCDVCD(vcd_path, only_sigs=True)
-PrettyPrinter().pprint(vcd.get_data())
+PrettyPrinter().pprint(vcd.data)
 print()
 
-print('# get_signals()')
+print('# signals')
 vcd = VCDVCD(vcd_path, only_sigs=True)
-pp.pprint(vcd.get_signals())
+pp.pprint(vcd.signals)
 print()
 
 print('# __init__(signals=)')
 vcd_only_sigs = VCDVCD(vcd_path, only_sigs=True)
-signals = vcd_only_sigs.get_signals()
+signals = vcd_only_sigs.signals
 len_signals = len(signals)
 if len_signals > 0:
     print('## 0')
     vcd_signal_0 = VCDVCD(vcd_path, signals=signals[0:1])
-    pp.pprint(vcd_signal_0.get_data())
+    pp.pprint(vcd_signal_0.data)
     print()
     if len_signals > 1:
         print('## 1')
         vcd_signal_1 = VCDVCD(vcd_path, signals=signals[1:2])
-        pp.pprint(vcd_signal_1.get_data())
+        pp.pprint(vcd_signal_1.data)
         print()
         print('## 01')
         vcd_signal_01 = VCDVCD(vcd_path, signals=signals[0:2])
-        pp.pprint(vcd_signal_01.get_data())
+        pp.pprint(vcd_signal_01.data)
         print()
 print()
 
@@ -54,12 +62,12 @@ print()
 
 print('# __init__(print_dumps=True, store_tvs=False)')
 vcd = VCDVCD(vcd_path, print_dumps=True, store_tvs=False)
-PrettyPrinter().pprint(vcd.get_data())
+PrettyPrinter().pprint(vcd.data)
 print()
 
 print('# __init__(print_dumps=True, signals=)')
 vcd_only_sigs = VCDVCD(vcd_path, only_sigs=True)
-signals = sorted(vcd_only_sigs.get_signals())
+signals = sorted(vcd_only_sigs.signals)
 VCDVCD(vcd_path, signals=signals[0:2], print_dumps=True, store_tvs=False)
 print()
 print('## reverse')
@@ -75,7 +83,7 @@ print()
 
 print('# __init__(print_deltas=True, signals=)')
 vcd_only_sigs = VCDVCD(vcd_path, only_sigs=True)
-signals = sorted(vcd_only_sigs.get_signals())
+signals = sorted(vcd_only_sigs.signals)
 if signals:
     VCDVCD(vcd_path, signals=signals[0:1], print_deltas=True, store_tvs=False)
 print()

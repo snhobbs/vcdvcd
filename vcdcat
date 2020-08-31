@@ -85,7 +85,7 @@ Now get the values for signals:
     )
     args = parser.parse_args()
     vcd = VCDVCD(args.vcd_path, only_sigs=True)
-    all_signals = vcd.get_signals()
+    all_signals = vcd.signals
     if args.signals:
         selected_signals = []
         for s in args.signals:
