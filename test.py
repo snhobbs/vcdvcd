@@ -8,7 +8,7 @@ class Test(unittest.TestCase):
     def test_data(self):
         vcd = VCDVCD('counter_tb.vcd')
         self.assertEqual(
-            vcd.ref('counter_tb.out[1:0]')['tv'][:6],
+            vcd['counter_tb.out[1:0]']['tv'][:6],
             [
                 ( 0,  'x'),
                 ( 2,  '0'),
