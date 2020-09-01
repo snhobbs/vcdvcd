@@ -112,10 +112,9 @@ Now get the values for signals:
         if args.deltas:
             callbacks = vcdvcd.PrintDeltasStreamParserCallbacks()
         else:
-            callbacks  = None
+            callbacks = vcdvcd.PrintDumpsStreamParserCallbacks()
         VCDVCD(
             args.vcd_path,
-            print_dumps=(not args.deltas),
             signals=signals,
             store_tvs=False,
             callbacks=callbacks,

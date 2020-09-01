@@ -13,8 +13,6 @@ class VCDVCD(object):
         self,
         vcd_path,
         only_sigs=False,
-        print_dumps=False,
-        print_dumps_deltas=True,
         signals=None,
         store_tvs=True,
         callbacks=None,
@@ -28,7 +26,8 @@ class VCDVCD(object):
         :ivar data: Parsed VCD data presented in an per-signal indexed list of deltas.
 
                     Binary search in this data presentation makes it possible
-                    to efficienty find the value of a given signal. TODO implement helper.
+                    to efficiently find the value of a given signal at a given time
+                    in random access. TODO implement helper.
 
         :type deltas: Dict[str,Any]
         :ivar deltas: Parsed VCD data presented in exactly the same format as the input,
@@ -75,15 +74,6 @@ class VCDVCD(object):
                         This speeds up parsing if you only want the list of signals.
         :type  only_sigs: bool
 
-        :param print_dumps: print the values of all signals as they are parsed
-        :type print_dumps: bool
-
-        :param print_dumps_deltas: controls how print_dumps prints exactly:
-                        - if True, print only if a value in signals since the previous time
-                          If not values changed, don't print anything.
-                        - if False, print all values at all times
-        :type print_dumps_deltas: bool
-
         :param signals: only consider signals in this list.
                         If empty, all signals are considered.
                         Printing commands however will only print every wire
@@ -100,9 +90,9 @@ class VCDVCD(object):
         self.references_to_ids = {}
         self.signals = []
         self.timescale = {}
+        self.signal_changed = False
 
         self._store_tvs = store_tvs
-        self._signal_changed = False
 
         if signals is None:
             signals = []
@@ -112,7 +102,6 @@ class VCDVCD(object):
         cur_sig_vals = {}
         hier = []
         num_sigs = 0
-        references_to_widths = {}
         time = 0
         with open(vcd_path, 'r') as f:
             while True:
@@ -126,52 +115,21 @@ class VCDVCD(object):
                 if line0 in self._VECTOR_VALUE_CHANGE:
                     value, identifier_code = line[1:].split()
                     self._add_value_identifier_code(
-                        time, value, identifier_code, print_dumps, cur_sig_vals,
-                        callbacks
-                    )
+                        time, value, identifier_code, cur_sig_vals, callbacks)
                 elif line0 in self._VALUE:
                     value = line0
                     identifier_code = line[1:]
                     self._add_value_identifier_code(
-                        time, value, identifier_code, print_dumps, cur_sig_vals,
-                        callbacks
-                    )
+                        time, value, identifier_code, cur_sig_vals, callbacks)
                 elif line0 == '#':
-                    if print_dumps and (not print_dumps_deltas or self._signal_changed):
-                        ss = []
-                        ss.append('{}'.format(time))
-                        for i, ref in enumerate(print_dumps_refs):
-                            identifier_code = self.references_to_ids[ref]
-                            value = cur_sig_vals[identifier_code]
-                            ss.append('{0:>{1}s}'.format(binary_string_to_hex(value), references_to_widths[ref]))
-                        print(' '.join(ss))
+                    callbacks.time(self, time, cur_sig_vals)
                     time = int(line[1:])
                     self.endtime = time
-                    self._signal_changed = False
+                    self.signal_changed = False
                 elif '$enddefinitions' in line:
                     if only_sigs:
                         break
-                    if print_dumps:
-                        print('0 time')
-                        if signals:
-                            print_dumps_refs = signals
-                        else:
-                            print_dumps_refs = sorted(self.data[i]['references'][0] for i in cur_sig_vals.keys())
-                        for i, ref in enumerate(print_dumps_refs, 1):
-                            print('{} {}'.format(i, ref))
-                            if i == 0:
-                                i = 1
-                            identifier_code = self.references_to_ids[ref]
-                            size = int(self.data[identifier_code]['size'])
-                            width = max(((size // 4)), int(math.floor(math.log10(i))) + 1)
-                            references_to_widths[ref] = width
-                        print()
-                        print('0 '.format(i, ), end='')
-                        for i, ref in enumerate(print_dumps_refs, 1):
-                            print('{0:>{1}d} '.format(i, references_to_widths[ref]), end='')
-                        print()
-                        print('=' * (sum(references_to_widths.values()) + len(references_to_widths) + 1))
-                    callbacks.enddefinitions(self)
+                    callbacks.enddefinitions(self, signals, cur_sig_vals)
                 elif '$scope' in line:
                     hier.append(line.split()[2])
                 elif '$upscope' in line:
@@ -194,8 +152,7 @@ class VCDVCD(object):
                             }
                         self.data[identifier_code]['references'].append(reference)
                         self.references_to_ids[reference] = identifier_code
-                        if print_dumps:
-                            cur_sig_vals[identifier_code] = 'x'
+                        cur_sig_vals[identifier_code] = 'x'
                 elif '$timescale' in line:
                     if not '$end' in line:
                         while True:
@@ -220,8 +177,9 @@ class VCDVCD(object):
 
     def _add_value_identifier_code(
         self, time, value, identifier_code,
-        print_dumps, cur_sig_vals, callbacks
+        cur_sig_vals, callbacks
     ):
+        # May not be there due to signal selection.
         if identifier_code in self.data:
             callbacks.value(
                 self,
@@ -231,13 +189,12 @@ class VCDVCD(object):
                 cur_sig_vals=cur_sig_vals
             )
             entry = self.data[identifier_code]
-            self._signal_changed = True
+            self.signal_changed = True
             if self._store_tvs:
                 if 'tv' not in entry:
                     entry['tv'] = []
                 entry['tv'].append((time, value))
-            if print_dumps:
-                cur_sig_vals[identifier_code] = value
+            cur_sig_vals[identifier_code] = value
 
     def __getitem__(self, refname):
         """
@@ -274,6 +231,29 @@ class VCDVCD(object):
         return self.timescale
 
 class StreamParserCallbacks(object):
+    def enddefinitions(
+        self,
+        vcd,
+        signals,
+        cur_sig_vals
+    ):
+        """
+        Called at $enddefinitions, i.e. once after the wire metadata finishes parsing at the
+        at the start start of parsing.
+        """
+        pass
+
+    def time(
+        self,
+        vcd,
+        time,
+        cur_sig_vals
+    ):
+        """
+        Called whenever a new time is found.
+        """
+        pass
+
     def value(
         self,
         vcd,
@@ -282,12 +262,9 @@ class StreamParserCallbacks(object):
         identifier_code,
         cur_sig_vals,
     ):
-        pass
-
-    def enddefinitions(
-        self,
-        vcd,
-    ):
+        """
+        Called whenever the value of a signal changes.
+        """
         pass
 
 class PrintDeltasStreamParserCallbacks(StreamParserCallbacks):
@@ -307,6 +284,70 @@ class PrintDeltasStreamParserCallbacks(StreamParserCallbacks):
             binary_string_to_hex(value),
             vcd.data[identifier_code]['references'][0])
         )
+
+class PrintDumpsStreamParserCallbacks(StreamParserCallbacks):
+    def __init__(self, deltas=True):
+        """
+        Print the values of all signals whenever a new signal entry
+        of any signal is parsed.
+
+        :param deltas:
+            - if True, print only if a value in the selected signals since the
+                previous time If no values changed, don't print anything.
+
+                This is the same format as shown at:
+                https://github.com/cirosantilli/vcdvcd#vcdcat-deltas
+                without --deltas.
+
+            - if False, print all values at all times
+        :type deltas: bool
+        """
+        self._deltas = deltas
+        self._references_to_widths = {}
+
+    def enddefinitions(
+        self,
+        vcd,
+        signals,
+        cur_sig_vals
+    ):
+        print('0 time')
+        if signals:
+            self._print_dumps_refs = signals
+        else:
+            self._print_dumps_refs = sorted(vcd.data[i]['references'][0] for i in cur_sig_vals.keys())
+        for i, ref in enumerate(self._print_dumps_refs, 1):
+            print('{} {}'.format(i, ref))
+            if i == 0:
+                i = 1
+            identifier_code = vcd.references_to_ids[ref]
+            size = int(vcd.data[identifier_code]['size'])
+            width = max(((size // 4)), int(math.floor(math.log10(i))) + 1)
+            self._references_to_widths[ref] = width
+        print()
+        print('0 '.format(i, ), end='')
+        for i, ref in enumerate(self._print_dumps_refs, 1):
+            print('{0:>{1}d} '.format(i, self._references_to_widths[ref]), end='')
+        print()
+        print('=' * (sum(self._references_to_widths.values()) + len(self._references_to_widths) + 1))
+
+    def time(
+        self,
+        vcd,
+        time,
+        cur_sig_vals
+    ):
+        if (not self._deltas or vcd.signal_changed):
+            ss = []
+            ss.append('{}'.format(time))
+            for i, ref in enumerate(self._print_dumps_refs):
+                identifier_code = vcd.references_to_ids[ref]
+                value = cur_sig_vals[identifier_code]
+                ss.append('{0:>{1}s}'.format(
+                    binary_string_to_hex(value),
+                    self._references_to_widths[ref])
+                )
+            print(' '.join(ss))
 
 def binary_string_to_hex(s):
     """
