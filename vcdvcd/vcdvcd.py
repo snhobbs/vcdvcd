@@ -76,11 +76,17 @@ class VCDVCD(object):
                         This speeds up parsing if you only want the list of signals.
         :type  only_sigs: bool
 
-        :param print_dumps: print the values of signals as they are parsed
+        :param print_deltas: print the new value of every new signal, one per line, as they are parsed.
+                             This present data in basically the same format as the original VCD, but in a
+                             more verbose and more readable and greppable format.
+        :type print_deltas: bool
+
+        :param print_dumps: print the values of all signals as they are parsed
         :type print_dumps: bool
 
         :param print_dumps_deltas: controls how print_dumps prints exactly:
-                        - if True, print only values that changed on the latest time
+                        - if True, print only if a value in signals since the previous time
+                          If not values changed, don't print anything.
                         - if False, print all values at all times
         :type print_dumps_deltas: bool
 
