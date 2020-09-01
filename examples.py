@@ -5,6 +5,7 @@ from __future__ import print_function
 import sys
 from pprint import PrettyPrinter
 
+import vcdvcd
 from vcdvcd import VCDVCD
 
 if (len(sys.argv) > 1):
@@ -26,14 +27,13 @@ print('# timescale')
 pp.pprint(vcd.timescale)
 print()
 
-print('# get_data(only_sigs=True)')
-vcd = VCDVCD(vcd_path, only_sigs=True)
-PrettyPrinter().pprint(vcd.data)
+print('# signals')
+pp.pprint(vcd.signals)
 print()
 
-print('# signals')
+print('# __init__(only_sigs=True)')
 vcd = VCDVCD(vcd_path, only_sigs=True)
-pp.pprint(vcd.signals)
+PrettyPrinter().pprint(vcd.data)
 print()
 
 print('# __init__(signals=)')
@@ -86,4 +86,18 @@ vcd_only_sigs = VCDVCD(vcd_path, only_sigs=True)
 signals = sorted(vcd_only_sigs.signals)
 if signals:
     VCDVCD(vcd_path, signals=signals[0:1], print_deltas=True, store_tvs=False)
+print()
+
+print('# __init__(value_callback=True)')
+class MyStreamParserCallbacks(vcdvcd.StreamParserCallbacks):
+    def value(
+        self,
+        vcd,
+        time,
+        value,
+        identifier_code,
+        cur_sig_vals,
+    ):
+        print('{} {} {}'.format(time, value, identifier_code))
+vcd = VCDVCD(vcd_path, stream_parser_callbacks=MyStreamParserCallbacks())
 print()

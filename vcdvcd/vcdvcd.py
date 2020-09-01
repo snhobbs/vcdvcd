@@ -18,6 +18,7 @@ class VCDVCD(object):
         print_dumps_deltas=True,
         signals=None,
         store_tvs=True,
+        stream_parser_callbacks=None,
     ):
         """
         Parse a VCD file, and store information about it in this object.
@@ -102,6 +103,8 @@ class VCDVCD(object):
 
         if signals is None:
             signals = []
+        if stream_parser_callbacks is None:
+            stream_parser_callbacks = StreamParserCallbacks()
         all_sigs = not signals
         cur_sig_vals = {}
         hier = []
@@ -120,15 +123,15 @@ class VCDVCD(object):
                 if line0 in self._VECTOR_VALUE_CHANGE:
                     value, identifier_code = line[1:].split()
                     self._add_value_identifier_code(
-                        time, value, identifier_code,
-                        print_deltas, print_dumps, cur_sig_vals
+                        time, value, identifier_code, print_deltas,
+                        print_dumps, cur_sig_vals, stream_parser_callbacks
                     )
                 elif line0 in self._VALUE:
                     value = line0
                     identifier_code = line[1:]
                     self._add_value_identifier_code(
-                        time, value, identifier_code,
-                        print_deltas, print_dumps, cur_sig_vals
+                        time, value, identifier_code, print_deltas,
+                        print_dumps, cur_sig_vals, stream_parser_callbacks
                     )
                 elif line0 == '#':
                     if print_dumps and (not print_dumps_deltas or self._signal_changed):
@@ -165,6 +168,7 @@ class VCDVCD(object):
                             print('{0:>{1}d} '.format(i, references_to_widths[ref]), end='')
                         print()
                         print('=' * (sum(references_to_widths.values()) + len(references_to_widths) + 1))
+                    stream_parser_callbacks.enddefinitions(self)
                 elif '$scope' in line:
                     hier.append(line.split()[2])
                 elif '$upscope' in line:
@@ -213,9 +217,17 @@ class VCDVCD(object):
 
     def _add_value_identifier_code(
         self, time, value, identifier_code,
-        print_deltas, print_dumps, cur_sig_vals
+        print_deltas, print_dumps, cur_sig_vals,
+        stream_parser_callbacks
     ):
         if identifier_code in self.data:
+            stream_parser_callbacks.value(
+                self,
+                time=time,
+                value=value,
+                identifier_code=identifier_code,
+                cur_sig_vals=cur_sig_vals
+            )
             entry = self.data[identifier_code]
             self._signal_changed = True
             if self._store_tvs:
@@ -226,6 +238,16 @@ class VCDVCD(object):
                 print("{} {} {}".format(time, self._to_hex(value), entry['references'][0]))
             if print_dumps:
                 cur_sig_vals[identifier_code] = value
+
+    def __getitem__(self, refname):
+        """
+        :type refname: str
+        :param refname: human readable name of a signal (reference)
+
+        :return: the signal for the given reference
+        """
+        return self.data[self.references_to_ids[refname]]
+
 
     @staticmethod
     def _to_hex(s):
@@ -258,12 +280,36 @@ class VCDVCD(object):
         """
         return self.timescale
 
-    def ref(self, refname):
-        """
-        :type refname: str
-        :param refname: human readable name of a signal (reference)
+class StreamParserCallbacks(object):
+    def value(
+        self,
+        vcd,
+        time,
+        value,
+        identifier_code,
+        cur_sig_vals,
+    ):
+        pass
 
-        :return: the signal for the given reference
-        """
-        return self.data[self.references_to_ids[refname]]
+    def enddefinitions(
+        self,
+        vcd,
+    ):
+        pass
 
+class VcdcatStreamParserCallbacks(object):
+    def value(
+        self,
+        vcd,
+        time,
+        value,
+        identifier_code,
+        cur_sig_vals,
+    ):
+        pass
+
+    def enddefinitions(
+        self,
+        vcd,
+    ):
+        pass
