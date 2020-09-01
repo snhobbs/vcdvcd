@@ -13,12 +13,11 @@ class VCDVCD(object):
         self,
         vcd_path,
         only_sigs=False,
-        print_deltas=False,
         print_dumps=False,
         print_dumps_deltas=True,
         signals=None,
         store_tvs=True,
-        stream_parser_callbacks=None,
+        callbacks=None,
     ):
         """
         Parse a VCD file, and store information about it in this object.
@@ -76,11 +75,6 @@ class VCDVCD(object):
                         This speeds up parsing if you only want the list of signals.
         :type  only_sigs: bool
 
-        :param print_deltas: print the new value of every new signal, one per line, as they are parsed.
-                             This present data in basically the same format as the original VCD, but in a
-                             more verbose and more readable and greppable format.
-        :type print_deltas: bool
-
         :param print_dumps: print the values of all signals as they are parsed
         :type print_dumps: bool
 
@@ -97,6 +91,9 @@ class VCDVCD(object):
                         Any printing done uses this signal order.
                         If repeated signals are given, they are printed twice.
         :type  signals: List[str]
+
+        :param callbacks: callbacks that get called as the VCD file is parsed
+        :type callbacks: StreamParserCallbacks
         """
         self.data = {}
         self.endtime = 0
@@ -109,8 +106,8 @@ class VCDVCD(object):
 
         if signals is None:
             signals = []
-        if stream_parser_callbacks is None:
-            stream_parser_callbacks = StreamParserCallbacks()
+        if callbacks is None:
+            callbacks = StreamParserCallbacks()
         all_sigs = not signals
         cur_sig_vals = {}
         hier = []
@@ -129,15 +126,15 @@ class VCDVCD(object):
                 if line0 in self._VECTOR_VALUE_CHANGE:
                     value, identifier_code = line[1:].split()
                     self._add_value_identifier_code(
-                        time, value, identifier_code, print_deltas,
-                        print_dumps, cur_sig_vals, stream_parser_callbacks
+                        time, value, identifier_code, print_dumps, cur_sig_vals,
+                        callbacks
                     )
                 elif line0 in self._VALUE:
                     value = line0
                     identifier_code = line[1:]
                     self._add_value_identifier_code(
-                        time, value, identifier_code, print_deltas,
-                        print_dumps, cur_sig_vals, stream_parser_callbacks
+                        time, value, identifier_code, print_dumps, cur_sig_vals,
+                        callbacks
                     )
                 elif line0 == '#':
                     if print_dumps and (not print_dumps_deltas or self._signal_changed):
@@ -146,7 +143,7 @@ class VCDVCD(object):
                         for i, ref in enumerate(print_dumps_refs):
                             identifier_code = self.references_to_ids[ref]
                             value = cur_sig_vals[identifier_code]
-                            ss.append('{0:>{1}s}'.format(self._to_hex(value), references_to_widths[ref]))
+                            ss.append('{0:>{1}s}'.format(binary_string_to_hex(value), references_to_widths[ref]))
                         print(' '.join(ss))
                     time = int(line[1:])
                     self.endtime = time
@@ -174,7 +171,7 @@ class VCDVCD(object):
                             print('{0:>{1}d} '.format(i, references_to_widths[ref]), end='')
                         print()
                         print('=' * (sum(references_to_widths.values()) + len(references_to_widths) + 1))
-                    stream_parser_callbacks.enddefinitions(self)
+                    callbacks.enddefinitions(self)
                 elif '$scope' in line:
                     hier.append(line.split()[2])
                 elif '$upscope' in line:
@@ -223,11 +220,10 @@ class VCDVCD(object):
 
     def _add_value_identifier_code(
         self, time, value, identifier_code,
-        print_deltas, print_dumps, cur_sig_vals,
-        stream_parser_callbacks
+        print_dumps, cur_sig_vals, callbacks
     ):
         if identifier_code in self.data:
-            stream_parser_callbacks.value(
+            callbacks.value(
                 self,
                 time=time,
                 value=value,
@@ -240,8 +236,6 @@ class VCDVCD(object):
                 if 'tv' not in entry:
                     entry['tv'] = []
                 entry['tv'].append((time, value))
-            if print_deltas:
-                print("{} {} {}".format(time, self._to_hex(value), entry['references'][0]))
             if print_dumps:
                 cur_sig_vals[identifier_code] = value
 
@@ -254,13 +248,6 @@ class VCDVCD(object):
         """
         return self.data[self.references_to_ids[refname]]
 
-
-    @staticmethod
-    def _to_hex(s):
-        for c in s:
-            if not c in '01':
-                return c
-        return hex(int(s, 2))[2:]
 
     def get_data(self):
         """
@@ -303,7 +290,10 @@ class StreamParserCallbacks(object):
     ):
         pass
 
-class VcdcatStreamParserCallbacks(object):
+class PrintDeltasStreamParserCallbacks(StreamParserCallbacks):
+    """
+    https://github.com/cirosantilli/vcdvcd#vcdcat-deltas
+    """
     def value(
         self,
         vcd,
@@ -312,10 +302,23 @@ class VcdcatStreamParserCallbacks(object):
         identifier_code,
         cur_sig_vals,
     ):
-        pass
+        print('{} {} {}'.format(
+            time,
+            binary_string_to_hex(value),
+            vcd.data[identifier_code]['references'][0])
+        )
 
-    def enddefinitions(
-        self,
-        vcd,
-    ):
-        pass
+def binary_string_to_hex(s):
+    """
+    Convert a binary string to hexadecimal.
+
+    If any non 0/1 values are present such as 'x', return that single character
+    as a representation.
+
+    :param s: the string to be converted
+    :type s: str
+    """
+    for c in s:
+        if not c in '01':
+            return c
+    return hex(int(s, 2))[2:]

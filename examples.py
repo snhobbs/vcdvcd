@@ -77,15 +77,24 @@ print('## repeat')
 VCDVCD(vcd_path, signals=(signals[0:1] * 2), print_dumps=True, store_tvs=False)
 print()
 
-print('# __init__(print_deltas=True)')
-VCDVCD(vcd_path, print_deltas=True, store_tvs=False)
+print('# __init__(store_tvs=False, callbacks=vcdvcd.PrintDeltasStreamParserCallbacks())')
+VCDVCD(
+    vcd_path,
+    store_tvs=False,
+    callbacks=vcdvcd.PrintDeltasStreamParserCallbacks()
+)
 print()
 
-print('# __init__(print_deltas=True, signals=)')
+print('# __init__(signals=, callbacks=vcdvcd.PrintDeltasStreamParserCallbacks())')
 vcd_only_sigs = VCDVCD(vcd_path, only_sigs=True)
 signals = sorted(vcd_only_sigs.signals)
 if signals:
-    VCDVCD(vcd_path, signals=signals[0:1], print_deltas=True, store_tvs=False)
+    VCDVCD(
+        vcd_path,
+        signals=signals[0:1],
+        store_tvs=False,
+        callbacks=vcdvcd.PrintDeltasStreamParserCallbacks()
+    )
 print()
 
 print('# __init__(value_callback=True)')
@@ -99,5 +108,5 @@ class MyStreamParserCallbacks(vcdvcd.StreamParserCallbacks):
         cur_sig_vals,
     ):
         print('{} {} {}'.format(time, value, identifier_code))
-vcd = VCDVCD(vcd_path, stream_parser_callbacks=MyStreamParserCallbacks())
+vcd = VCDVCD(vcd_path, callbacks=MyStreamParserCallbacks())
 print()

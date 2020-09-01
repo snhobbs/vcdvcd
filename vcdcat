@@ -6,6 +6,7 @@ from argparse import ArgumentParser, RawTextHelpFormatter
 import re
 import sys
 
+import vcdvcd
 from vcdvcd import VCDVCD
 
 if __name__ == '__main__':
@@ -108,10 +109,14 @@ Now get the values for signals:
             signals = selected_signals
         else:
             signals = []
+        if args.deltas:
+            callbacks = vcdvcd.PrintDeltasStreamParserCallbacks()
+        else:
+            callbacks  = None
         VCDVCD(
             args.vcd_path,
-            print_deltas=args.deltas,
             print_dumps=(not args.deltas),
             signals=signals,
             store_tvs=False,
+            callbacks=callbacks,
         )
