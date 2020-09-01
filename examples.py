@@ -108,5 +108,5 @@ class MyStreamParserCallbacks(vcdvcd.StreamParserCallbacks):
         cur_sig_vals,
     ):
         print('{} {} {}'.format(time, value, identifier_code))
-vcd = VCDVCD(vcd_path, callbacks=MyStreamParserCallbacks())
+vcd = VCDVCD(vcd_path, callbacks=MyStreamParserCallbacks(), store_tvs=False)
 print()
