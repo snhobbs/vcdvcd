@@ -177,7 +177,7 @@ print(signal[1])
 print(signal[3])
 ....
 
-But you can also use this library in a puerly stream callback fashion as shown in the examples by doing something like:
+But you can also use this library in a purely stream callback fashion as shown in the examples by doing something like:
 
 ....
 class MyStreamParserCallbacks(vcdvcd.StreamParserCallbacks):
