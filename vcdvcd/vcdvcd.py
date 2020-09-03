@@ -1,8 +1,12 @@
 from __future__ import print_function
 
+import bisect
 import math
 import re
 from decimal import Decimal
+
+from pprint import PrettyPrinter
+pp = PrettyPrinter()
 
 class VCDVCD(object):
 
@@ -23,31 +27,29 @@ class VCDVCD(object):
 
         The bulk of the parsed data can be obtained with :func:`parse_data`.
 
-        :type data: Dict[str,Any]
         :ivar data: Parsed VCD data presented in an per-signal indexed list of deltas.
+                    Maps short (often signle character) signal names present in the VCD,
+                    to Signal objects.
+        :vartype data: Dict[str,Signal]
 
-                    Binary search in this data presentation makes it possible
-                    to efficiently find the value of a given signal at a given time
-                    in random access. TODO implement helper.
-
-        :type deltas: Dict[str,Any]
         :ivar deltas: Parsed VCD data presented in exactly the same format as the input,
                     with all signals mixed up, but sorted in time.
+        :vartype deltas: Dict[str,Any]
 
         :ivar endtime: Last timestamp present in the last parsed VCD.
 
                        This can be extracted from the data, but we also cache while parsing.
-        :type endtime: int
+        :vartype endtime: int
 
         :ivar references_to_ids: map of long-form human readable signal names to the short
                        style VCD dump values
-        :type references_to_ids: Dict[str,str]
+        :vartype references_to_ids: Dict[str,str]
 
         :ivar signals: The set of unique signal names from the parsed VCD,
                        in the order they are defined in the file.
 
                         This can be extracted from the data, but we also cache while parsing.
-        :type signals: List[str]
+        :vartype signals: List[str]
 
         :ivar timescale: A dictionary of key/value pairs describing the timescale.
 
@@ -57,7 +59,7 @@ class VCDVCD(object):
                         - "number": time number as specified in the VCD file
                         - "unit": time unit as specified in the VCD file
                         - "factor": numerical factor derived from the unit
-        :type timescale: Dict
+        :vartype timescale: Dict
 
         :type vcd_path: str
         :param vcd_path: path to the VCD file to parse
@@ -146,12 +148,8 @@ class VCDVCD(object):
                     if (reference in signals) or all_sigs:
                         self.signals.append(reference)
                         if identifier_code not in self.data:
-                            self.data[identifier_code] = {
-                                'references': [],
-                                'size': size,
-                                'var_type': type,
-                            }
-                        self.data[identifier_code]['references'].append(reference)
+                            self.data[identifier_code] = Signal(size, type)
+                        self.data[identifier_code].references.append(reference)
                         self.references_to_ids[reference] = identifier_code
                         cur_sig_vals[identifier_code] = 'x'
                 elif '$timescale' in line:
@@ -196,9 +194,7 @@ class VCDVCD(object):
             entry = self.data[identifier_code]
             self.signal_changed = True
             if self._store_tvs:
-                if 'tv' not in entry:
-                    entry['tv'] = []
-                entry['tv'].append((time, value))
+                entry.tv.append((time, value))
             cur_sig_vals[identifier_code] = value
 
     def __getitem__(self, refname):
@@ -207,6 +203,7 @@ class VCDVCD(object):
         :param refname: human readable name of a signal (reference)
 
         :return: the signal for the given reference
+        :rtype: Signal
         """
         return self.data[self.references_to_ids[refname]]
 
@@ -234,6 +231,48 @@ class VCDVCD(object):
         Deprecated, use the member variable directly.
         """
         return self.timescale
+
+class Signal(object):
+    """
+    Contains signal metadata and all value/updates pairs for a given signal.
+
+    Allows for efficient binary search of the value of this signal at a given time.
+
+    :param size: number of bits in the signal
+    :type size: int
+
+    :param size: e.g. 'wire' or 'reg'
+    :type var_type: str
+
+    :ivar references: list of human readable long names for the signal
+    :vartype references: List[str]
+
+    :ivar tv: sorted list of time/new value pairs. Signal values are be strings
+              instead of integers to represents values such as 'x'.
+    :vartype tv: List[Tuple[int,str]]
+    """
+    def __init__(self, size, var_type):
+        self.size = size
+        self.var_type = var_type
+        self.references = []
+        self.tv = []
+
+    def __getitem__(self, time):
+        """
+        Get the value of a signal at a given time.
+
+        :type time: int
+        :rtype time: str
+        """
+        left = bisect.bisect_left(self.tv, (time, ''))
+        if self.tv[left][0] == time:
+            i = left
+        else:
+            i = left - 1
+        return self.tv[i][1]
+
+    def __repr__(self):
+        return pp.pformat(self.__dict__)
 
 class StreamParserCallbacks(object):
     def enddefinitions(
@@ -287,7 +326,7 @@ class PrintDeltasStreamParserCallbacks(StreamParserCallbacks):
         print('{} {} {}'.format(
             time,
             binary_string_to_hex(value),
-            vcd.data[identifier_code]['references'][0])
+            vcd.data[identifier_code].references[0])
         )
 
 class PrintDumpsStreamParserCallbacks(StreamParserCallbacks):
@@ -320,13 +359,13 @@ class PrintDumpsStreamParserCallbacks(StreamParserCallbacks):
         if signals:
             self._print_dumps_refs = signals
         else:
-            self._print_dumps_refs = sorted(vcd.data[i]['references'][0] for i in cur_sig_vals.keys())
+            self._print_dumps_refs = sorted(vcd.data[i].references[0] for i in cur_sig_vals.keys())
         for i, ref in enumerate(self._print_dumps_refs, 1):
             print('{} {}'.format(i, ref))
             if i == 0:
                 i = 1
             identifier_code = vcd.references_to_ids[ref]
-            size = int(vcd.data[identifier_code]['size'])
+            size = int(vcd.data[identifier_code].size)
             width = max(((size // 4)), int(math.floor(math.log10(i))) + 1)
             self._references_to_widths[ref] = width
         print()

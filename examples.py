@@ -33,7 +33,7 @@ print()
 
 print('# __init__(only_sigs=True)')
 vcd = VCDVCD(vcd_path, only_sigs=True)
-PrettyPrinter().pprint(vcd.data)
+pp.pprint(vcd.data)
 print()
 
 print('# __init__(signals=)')
@@ -62,7 +62,7 @@ print()
 
 print('# __init__(callbacks=vcdvcd.PrintDeltasStreamParserCallbacks(), store_tvs=False)')
 vcd = VCDVCD(vcd_path, callbacks=vcdvcd.PrintDeltasStreamParserCallbacks(), store_tvs=False)
-PrettyPrinter().pprint(vcd.data)
+pp.pprint(vcd.data)
 print()
 
 print('# __init__(callbacks=vcdvcd.PrintDeltasStreamParserCallbacks(), signals=)')

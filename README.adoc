@@ -158,9 +158,7 @@ means that:
 * the signal `counter_tb.top.out[1:0]`
 * had value `x`
 
-== About this repository
-
-The VCD format is defined by the Verilog standard, and can be generated with `$dumpvars`.
+== API usage
 
 Library usage examples can be seen at link:example.py[] and run with:
 
@@ -168,7 +166,16 @@ Library usage examples can be seen at link:example.py[] and run with:
 ./examples.py
 ....
 
-By default, data is parsed at once into a per-signal format that allows for efficient random access TODO: convert signals to class and add a binary search helper, for now just do binary search yourself.
+By default, data is parsed at once into a per-signal format that allows for efficient random access, for example:
+
+....
+from vcdvcd import VCDVCD
+vcd = VCDVCD('counter_tb.vcd')
+signal = vcd['counter_tb.top.out[1:0]']
+print(signal[0])
+print(signal[1])
+print(signal[3])
+....
 
 But you can also use this library in a puerly stream callback fashion as shown in the examples by doing something like:
 
@@ -183,14 +190,29 @@ class MyStreamParserCallbacks(vcdvcd.StreamParserCallbacks):
         cur_sig_vals,
     ):
         print('{} {} {}'.format(time, value, identifier_code))
-vcd = VCDVCD(vcd_path, callbacks=MyStreamParserCallbacks(), store_tvs=False)
+vcd = VCDVCD('counter_tb.vcd', callbacks=MyStreamParserCallbacks(), store_tvs=False)
 ....
+
+`store_tvs` instructs the library to not store its own signal data, which would likely just take up useless space in your streaming application.
+
+== About this repository
+
+The VCD format is defined by the Verilog standard, and can be generated with `$dumpvars`.
 
 This repo was originally forked from Sameer Gauria's version, which is currently only hosted on PyPI with email patches and no public bug tracking: link:https://pypi.python.org/pypi/Verilog_VCD[]. There is also a read-only mirror at: link:https://github.com/zylin/Verilog_VCD[].
 
 Another stream implementation can be seen at: link:https://github.com/GordonMcGregor/vcd_parser[].
 
 == Release procedure
+
+Ensure that basic tests don't blow up:
+
+....
+./examples.py
+./test.py
+./vcdcat counter_tb.py
+./vcdcat -d counter_tb.py
+....
 
 Update the `version` field in `setup.py`:
 
@@ -201,9 +223,10 @@ vim setup.py
 Create a tag and push it:
 
 ....
+v=v1.0.1
 git add setup.py
-git commit -m v1.0.1 v1.0.1
-git tag -a v1.0.1 -m v1.0.1
+git commit -m $v $v
+git tag -a $v -m $v
 git push --follow-tags
 ....
 
