@@ -33,7 +33,7 @@ This allows you to direcly edit the source code here and see updates to importer
 Use <<vcdcat>> directly from this repo without installing:
 
 ....
-./vcdcat -h
+vcdcat -h
 ....
 
 == vcdcat
@@ -41,13 +41,13 @@ Use <<vcdcat>> directly from this repo without installing:
 Nifty terminal CLI VCD pretty printer:
 
 ....
-./vcdcat -h
+vcdcat -h
 ....
 
 Dump all signal values:
 
 ....
-./vcdcat counter_tb.vcd
+vcdcat counter_tb.vcd
 ....
 
 Output:
@@ -90,10 +90,10 @@ Output:
 25 0 0 2 0 2
 ....
 
-Dump only a some of the signals:
+Dump only selected signals:
 
 ....
-./vcdcat counter_tb.vcd top.enable top.reset
+vcdcat counter_tb.vcd top.enable top.reset
 ....
 
 Output:
@@ -112,7 +112,7 @@ Output:
 25 0 0
 ....
 
-Only times for which at least one signal changed are shown.
+Note how only times for which at least one selected signal changed are shown.
 
 === `vcdcat --deltas`
 
@@ -125,7 +125,7 @@ This will potentially make the output much much smaller for large VCD files.
 Example:
 
 ....
-./vcdcat -d counter_tb.vcd
+vcdcat -d counter_tb.vcd
 ....
 
 Output excerpt:
@@ -193,7 +193,7 @@ class MyStreamParserCallbacks(vcdvcd.StreamParserCallbacks):
 vcd = VCDVCD('counter_tb.vcd', callbacks=MyStreamParserCallbacks(), store_tvs=False)
 ....
 
-`store_tvs` instructs the library to not store its own signal data, which would likely just take up useless space in your streaming application.
+`store_tvs=False` instructs the library to not store all the signal value change data,  which would likely just take up useless space in your streaming application. Only signal metadata is stored in that case.
 
 == About this repository
 
