@@ -158,6 +158,29 @@ means that:
 * the signal `counter_tb.top.out[1:0]`
 * had value `x`
 
+As without `--deltas`, we can also view deltas only for selected signals, e.g.:
+
+....
+./vcdcat -d counter_tb.vcd 'counter_tb.top.out[1:0]'
+....
+
+outputs:
+
+....
+0 x counter_tb.top.out[1:0]
+2 0 counter_tb.top.out[1:0]
+6 1 counter_tb.top.out[1:0]
+8 2 counter_tb.top.out[1:0]
+10 3 counter_tb.top.out[1:0]
+12 0 counter_tb.top.out[1:0]
+14 1 counter_tb.top.out[1:0]
+16 2 counter_tb.top.out[1:0]
+18 3 counter_tb.top.out[1:0]
+20 0 counter_tb.top.out[1:0]
+22 1 counter_tb.top.out[1:0]
+24 2 counter_tb.top.out[1:0]
+....
+
 == API usage
 
 Library usage examples can be seen at link:example.py[] and run with:
@@ -170,11 +193,31 @@ By default, data is parsed at once into a per-signal format that allows for effi
 
 ....
 from vcdvcd import VCDVCD
+
+# Do the parsing.
 vcd = VCDVCD('counter_tb.vcd')
+
+# List all human readable signal names.
+print(vcd.references_to_ids.keys())
+
+# View all signal data.
+print(vcd.data)
+
+# Get a signal by human readable name.
 signal = vcd['counter_tb.top.out[1:0]']
-print(signal[0])
-print(signal[1])
-print(signal[3])
+
+# The a list of time/value delta pairs for this signal.
+tv = signal.tv
+assert(tv[0] == (0, 'x'))
+assert(tv[1] == (2, '0'))
+assert(tv[2] == (6, '1'))
+
+# Random access value of the signal at a given time.
+# Note how it works for times between deltas as well.
+assert(signal[0] == 'x')
+assert(signal[1] == 'x')
+assert(signal[2] == '0')
+assert(signal[3] == '0')
 ....
 
 But you can also use this library in a purely stream callback fashion as shown in the examples by doing something like:

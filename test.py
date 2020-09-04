@@ -19,6 +19,8 @@ class Test(unittest.TestCase):
                 (12,  '0'),
             ]
         )
+
+        # Random access.
         self.assertEqual(signal[0], 'x')
         self.assertEqual(signal[1], 'x')
         self.assertEqual(signal[2], '0')
