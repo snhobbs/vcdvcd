@@ -156,7 +156,7 @@ means that:
 
 * at time `0`
 * the signal `counter_tb.top.out[1:0]`
-* had value `x`
+* changed to value `x`
 
 As without `--deltas`, we can also view deltas only for selected signals, e.g.:
 
