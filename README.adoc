@@ -206,7 +206,7 @@ print(vcd.data)
 # Get a signal by human readable name.
 signal = vcd['counter_tb.top.out[1:0]']
 
-# The a list of time/value delta pairs for this signal.
+# tv is a list of Time/Value delta pairs for this signal.
 tv = signal.tv
 assert(tv[0] == (0, 'x'))
 assert(tv[1] == (2, '0'))
