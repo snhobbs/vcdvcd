@@ -253,8 +253,8 @@ Ensure that basic tests don't blow up:
 ....
 ./examples.py
 ./test.py
-./vcdcat counter_tb.py
-./vcdcat -d counter_tb.py
+./vcdcat counter_tb.vcd
+./vcdcat -d counter_tb.vcd
 ....
 
 Update the `version` field in `setup.py`:
