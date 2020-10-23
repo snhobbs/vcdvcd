@@ -25,15 +25,17 @@ Install master directly from this repository for development with `--editable`:
 
 ....
 git clone https://github.com/cirosantilli/vcdvcd
+cd vcdvcd
 python -m pip install --editable . --user
 ....
 
 This allows you to direcly edit the source code here and see updates to importers from anywhere as shown at: https://stackoverflow.com/questions/35064426/when-would-the-e-editable-option-be-useful-with-pip-install/63353319#63353319[].
 
-Use <<vcdcat>> directly from this repo without installing:
+You can also use <<vcdcat>> directly from a clone without installing anything:
 
 ....
-vcdcat -h
+git clone https://github.com/cirosantilli/vcdvcd
+vcdvcd/vcdcat vcdvcd/counter_tb.vcd
 ....
 
 == vcdcat
@@ -268,7 +270,7 @@ Create a tag and push it:
 ....
 v=v2.0.2
 git add setup.py
-git commit -m $v $v
+git commit -m $v
 git tag -a $v -m $v
 git push --follow-tags
 ....
