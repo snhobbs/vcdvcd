@@ -185,7 +185,7 @@ outputs:
 
 == API usage
 
-Library usage examples can be seen at link:example.py[] and run with:
+Library usage examples can be seen at link:examples.py[] and run with:
 
 ....
 ./examples.py
