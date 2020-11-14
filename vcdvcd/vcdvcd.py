@@ -56,9 +56,10 @@ class VCDVCD(object):
                         List of keys:
 
                         - "timescale": timescale in seconds (SI unit)
-                        - "number": time number as specified in the VCD file
-                        - "unit": time unit as specified in the VCD file
-                        - "factor": numerical factor derived from the unit
+                        - "magnitude": timescale magnitude as specified in the VCD file
+                        - "unit"     : timescale unit as specified in the VCD file (string)
+                        - "factor"   : numerical factor derived from the unit
+
         :vartype timescale: Dict
 
         :type vcd_path: str
