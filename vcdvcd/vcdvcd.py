@@ -91,6 +91,7 @@ class VCDVCD(object):
         """
         self.data = {}
         self.endtime = 0
+        self.begintime = 0
         self.references_to_ids = {}
         self.signals = []
         self.timescale = {}
@@ -107,6 +108,7 @@ class VCDVCD(object):
         hier = []
         num_sigs = 0
         time = 0
+        first_time = True
         with open(vcd_path, 'r') as f:
             while True:
                 line = f.readline()
@@ -128,6 +130,9 @@ class VCDVCD(object):
                 elif line0 == '#':
                     callbacks.time(self, time, cur_sig_vals)
                     time = int(line[1:])
+                    if first_time:
+                        self.begintime = time
+                        first_time = False
                     self.endtime = time
                     self.signal_changed = False
                 elif '$enddefinitions' in line:
