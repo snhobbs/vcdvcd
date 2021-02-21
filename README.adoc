@@ -163,7 +163,7 @@ means that:
 As without `--deltas`, we can also view deltas only for selected signals, e.g.:
 
 ....
-./vcdcat -d counter_tb.vcd 'counter_tb.top.out[1:0]'
+vcdcat -d counter_tb.vcd 'counter_tb.top.out[1:0]'
 ....
 
 outputs:

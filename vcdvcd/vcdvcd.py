@@ -1,9 +1,11 @@
 from __future__ import print_function
 
 import bisect
+import collections
+import io
+import json
 import math
 import re
-import collections
 from decimal import Decimal
 from pprint import PrettyPrinter
 
@@ -17,13 +19,13 @@ class VCDVCD(object):
 
     def __init__(
         self,
-        vcd_path,
+        vcd_path=None,
         only_sigs=False,
         signals=None,
         store_tvs=True,
         store_scopes=False,
-        save_hierarchy=None,
         callbacks=None,
+        vcd_string=None,
     ):
         """
         Parse a VCD file, and store information about it in this object.
@@ -94,13 +96,12 @@ class VCDVCD(object):
 
         :type  store_scopes: bool
 
-        :param save_hierarchy: indicates a path where to store a json reflecting
-                        hierarchy inside vcd.
-
-        :type  save_hierarchy: str
-
         :param callbacks: callbacks that get called as the VCD file is parsed
         :type callbacks: StreamParserCallbacks
+
+        :param vcd_string: use this string as the VCD content instead of vcd_path.
+                           vcd_path is ignored.
+        :type vcd_string: Union[NoeType,str]
         """
         self.hierarchy = {}
         self.scopes    = {}
@@ -125,100 +126,101 @@ class VCDVCD(object):
         num_sigs = 0
         time = 0
         first_time = True
-        with open(vcd_path, 'r') as f:
-            while True:
-                line = f.readline()
-                if line == '':
+        if vcd_string is not None:
+            vcd_file = io.StringIO(vcd_string)
+        else:
+            vcd_file = open(vcd_path, 'r')
+        while True:
+            line = vcd_file.readline()
+            if line == '':
+                break
+            line0 = line[0]
+            line = line.strip()
+            if line == '':
+                continue
+            if line0 in self._VECTOR_VALUE_CHANGE:
+                value, identifier_code = line[1:].split()
+                self._add_value_identifier_code(
+                    time, value, identifier_code, cur_sig_vals, callbacks)
+            elif line0 in self._VALUE:
+                value = line0
+                identifier_code = line[1:]
+                self._add_value_identifier_code(
+                    time, value, identifier_code, cur_sig_vals, callbacks)
+            elif line0 == '#':
+                callbacks.time(self, time, cur_sig_vals)
+                time = int(line[1:])
+                if first_time:
+                    self.begintime = time
+                    first_time = False
+                self.endtime = time
+                self.signal_changed = False
+            elif '$enddefinitions' in line:
+                if only_sigs:
                     break
-                line0 = line[0]
-                line = line.strip()
-                if line == '':
-                    continue
-                if line0 in self._VECTOR_VALUE_CHANGE:
-                    value, identifier_code = line[1:].split()
-                    self._add_value_identifier_code(
-                        time, value, identifier_code, cur_sig_vals, callbacks)
-                elif line0 in self._VALUE:
-                    value = line0
-                    identifier_code = line[1:]
-                    self._add_value_identifier_code(
-                        time, value, identifier_code, cur_sig_vals, callbacks)
-                elif line0 == '#':
-                    callbacks.time(self, time, cur_sig_vals)
-                    time = int(line[1:])
-                    if first_time:
-                        self.begintime = time
-                        first_time = False
-                    self.endtime = time
-                    self.signal_changed = False
-                elif '$enddefinitions' in line:
-                    if only_sigs:
-                        break
-                    callbacks.enddefinitions(self, signals, cur_sig_vals)
-                elif '$scope' in line:
-                    scope_name = line.split()[2]
-                    hier.append(scope_name)
+                callbacks.enddefinitions(self, signals, cur_sig_vals)
+            elif '$scope' in line:
+                scope_name = line.split()[2]
+                hier.append(scope_name)
 
-                    if store_scopes:
-                        full_scope_name              = '.'.join(hier)
-                        new_scope                    = Scope(full_scope_name,self)
-                        scopes_stack[-1][scope_name] = new_scope
-                        self.scopes[full_scope_name] = new_scope
-                        scopes_stack.append(new_scope)
-                elif '$upscope' in line:
-                    hier.pop()
-                    if store_scopes:
-                        scopes_stack.pop()
-                elif '$var' in line:
-                    ls = line.split()
-                    type = ls[1]
-                    size = ls[2]
-                    identifier_code = ls[3]
-                    name = ''.join(ls[4:-1])
-                    path = '.'.join(hier)
+                if store_scopes:
+                    full_scope_name              = '.'.join(hier)
+                    new_scope                    = Scope(full_scope_name,self)
+                    scopes_stack[-1][scope_name] = new_scope
+                    self.scopes[full_scope_name] = new_scope
+                    scopes_stack.append(new_scope)
+            elif '$upscope' in line:
+                hier.pop()
+                if store_scopes:
+                    scopes_stack.pop()
+            elif '$var' in line:
+                ls = line.split()
+                type = ls[1]
+                size = ls[2]
+                identifier_code = ls[3]
+                name = ''.join(ls[4:-1])
+                path = '.'.join(hier)
+                if path:
                     reference = path + '.' + name
-                    if store_scopes:
-                        scopes_stack[-1][name] = reference
-                    if (reference in signals) or all_sigs:
-                        self.signals.append(reference)
-                        if identifier_code not in self.data:
-                            self.data[identifier_code] = Signal(size, type)
-                        self.data[identifier_code].references.append(reference)
-                        self.references_to_ids[reference] = identifier_code
-                        cur_sig_vals[identifier_code] = 'x'
-                elif '$timescale' in line:
-                    if not '$end' in line:
-                        while True:
-                            line += " " + f.readline().strip().rstrip()
-                            if '$end'  in line:
-                                break
-                    timescale = ' '.join(line.split()[1:-1])
-                    magnitude = Decimal(re.findall(r"\d+|$", timescale)[0])
-                    if magnitude not in [1, 10, 100]:
-                        print("Error: Magnitude of timescale must be one of 1, 10, or 100. "\
-                            + "Current magnitude is: {}".format(magnitude))
-                        exit(-1)
-                    unit      = re.findall(r"s|ms|us|ns|ps|fs|$", timescale)[0]
-                    factor = {
-                        "s":  '1e0',
-                        "ms": '1e-3',
-                        "us": '1e-6',
-                        "ns": '1e-9',
-                        "ps": '1e-12',
-                        "fs": '1e-15',
-                    }[unit]
-                    self.timescale["timescale"] = magnitude * Decimal(factor)
-                    self.timescale["magnitude"] = magnitude
-                    self.timescale["unit"]   = unit
-                    self.timescale["factor"] = Decimal(factor)
-
-            for aSignal in filter( lambda x: isinstance(x, Signal),self.data.values()):
-                aSignal.endtime = self.endtime
-
-            if save_hierarchy:
-                import json
-                with open(save_hierarchy, 'w', encoding='utf-8') as f:
-                    json.dump(self.hierarchy, f, ensure_ascii=False, indent=4)
+                else:
+                    reference = name
+                if store_scopes:
+                    scopes_stack[-1][name] = reference
+                if (reference in signals) or all_sigs:
+                    self.signals.append(reference)
+                    if identifier_code not in self.data:
+                        self.data[identifier_code] = Signal(size, type)
+                    self.data[identifier_code].references.append(reference)
+                    self.references_to_ids[reference] = identifier_code
+                    cur_sig_vals[identifier_code] = 'x'
+            elif '$timescale' in line:
+                if not '$end' in line:
+                    while True:
+                        line += " " + vcd_file.readline().strip().rstrip()
+                        if '$end'  in line:
+                            break
+                timescale = ' '.join(line.split()[1:-1])
+                magnitude = Decimal(re.findall(r"\d+|$", timescale)[0])
+                if magnitude not in [1, 10, 100]:
+                    print("Error: Magnitude of timescale must be one of 1, 10, or 100. "\
+                        + "Current magnitude is: {}".format(magnitude))
+                    exit(-1)
+                unit      = re.findall(r"s|ms|us|ns|ps|fs|$", timescale)[0]
+                factor = {
+                    "s":  '1e0',
+                    "ms": '1e-3',
+                    "us": '1e-6',
+                    "ns": '1e-9',
+                    "ps": '1e-12',
+                    "fs": '1e-15',
+                }[unit]
+                self.timescale["timescale"] = magnitude * Decimal(factor)
+                self.timescale["magnitude"] = magnitude
+                self.timescale["unit"]   = unit
+                self.timescale["factor"] = Decimal(factor)
+        for aSignal in filter( lambda x: isinstance(x, Signal),self.data.values()):
+            aSignal.endtime = self.endtime
+        vcd_file.close()
 
     def _add_value_identifier_code(
         self, time, value, identifier_code,
@@ -248,25 +250,22 @@ class VCDVCD(object):
         :rtype: Signal
         """
         if isinstance(refname,re.Pattern):
-            l    = []
+            l = []
             for aSignal in self.signals:
                 if ( refname.search(aSignal)):
                     l.append(aSignal)
             for aScope in self.scopes:
                 if ( refname.search(aScope)):
                     l.append(aScope)
-            #print(f'found {len(l)} elements {l}')
             if len(l) == 1:
                 return self[l[0]]
             return l
         else:
-            #print(f'looking for {refname}')
             if refname in self.references_to_ids:
                 return self.data[self.references_to_ids[refname]]
             if refname in self.scopes:
                 return self.scopes[refname]
-            else:
-                return []
+            raise KeyError(refname)
 
 
     def get_data(self):

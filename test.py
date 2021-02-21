@@ -7,6 +7,19 @@ from vcdvcd import VCDVCD
 import vcdvcd
 
 class Test(unittest.TestCase):
+    SMALL_CLOCK_VCD = '''
+$var reg 1 " clock $end
+$enddefinitions $end
+#0
+$dumpvars
+0"
+$end
+#1
+1"
+#2
+0"
+'''
+
     def test_data(self):
         vcd = VCDVCD('counter_tb.vcd')
         signal = vcd['counter_tb.out[1:0]']
@@ -29,9 +42,6 @@ class Test(unittest.TestCase):
         self.assertEqual(signal[7], '1')
         self.assertEqual(signal[24], '10')
         self.assertEqual(signal[25], '10')
-
-        non_existent_signal = vcd['non_existent_signal']
-        self.assertEqual(len(non_existent_signal),0)
 
     def test_slice(self):
         vcd = VCDVCD('counter_tb.vcd')
@@ -116,6 +126,19 @@ class Test(unittest.TestCase):
                 self.assertEqual(signal_d, '0')
             else:
                 self.assertEqual(int(signal_d,2), ((t - 4)//2)%4)
+
+    def test_toplevel_signal(self):
+        vcd = VCDVCD(vcd_string=self.SMALL_CLOCK_VCD)
+        signal = vcd['clock']
+        self.assertEqual(signal[0], '0')
+        self.assertEqual(signal[1], '1')
+        self.assertEqual(signal[2], '0')
+        self.assertEqual(signal[3], '0')
+
+    def test_nonexistent_signal(self):
+        vcd = VCDVCD(vcd_string=self.SMALL_CLOCK_VCD)
+        with self.assertRaises(KeyError):
+            vcd['non_existent_signal']
 
 if __name__ == '__main__':
     unittest.main()
