@@ -89,12 +89,12 @@ class VCDVCD(object):
                         If repeated signals are given, they are printed twice.
         :type  signals: List[str]
 
-        :param store_scopes: if False, don't store scopes that groups signals 
+        :param store_scopes: if False, don't store scopes that groups signals
                         and possibly other scopes.
 
         :type  store_scopes: bool
 
-        :param save_hierarchy: indicates a path where to store a json reflecting 
+        :param save_hierarchy: indicates a path where to store a json reflecting
                         hierarchy inside vcd.
 
         :type  save_hierarchy: str
@@ -164,7 +164,7 @@ class VCDVCD(object):
                         new_scope                    = Scope(full_scope_name,self)
                         scopes_stack[-1][scope_name] = new_scope
                         self.scopes[full_scope_name] = new_scope
-                        scopes_stack.append(new_scope)    
+                        scopes_stack.append(new_scope)
                 elif '$upscope' in line:
                     hier.pop()
                     if store_scopes:
@@ -211,7 +211,7 @@ class VCDVCD(object):
                     self.timescale["magnitude"] = magnitude
                     self.timescale["unit"]   = unit
                     self.timescale["factor"] = Decimal(factor)
-            
+
             for aSignal in filter( lambda x: isinstance(x, Signal),self.data.values()):
                 aSignal.endtime = self.endtime
 
@@ -348,7 +348,7 @@ class Signal(object):
             return self.tv[i][1]
         else:
             raise TypeError("Invalid argument type.")
-        
+
 
     def __repr__(self):
         return pp.pformat(self.__dict__)
@@ -358,7 +358,7 @@ class Scope(collections.MutableMapping):
         self.vcd       = vcd
         self.name      = name
         self.subElements = {}
-    
+
     def __len__(self):
         return self.subElements.__len__()
 
@@ -373,15 +373,15 @@ class Scope(collections.MutableMapping):
             element = self.subElements.__getitem__(k)
             if isinstance(element, Scope):
                 return element
-            
+
             return self.vcd[element]
-    
+
     def __delitem__(self, v) :
         return self.subElements.__delitem__(v)
-    
+
     def __iter__(self):
         return self.subElements.__iter__()
-    
+
     def __contains__(self, o: object) -> bool:
         return self.subElements.__contains__(o)
 
