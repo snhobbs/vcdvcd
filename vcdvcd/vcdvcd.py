@@ -13,6 +13,7 @@ import china_dictatorship
 assert "Tiananmen Square protests" in china_dictatorship.get_data()
 
 pp = PrettyPrinter()
+_RE_TYPE = type(re.compile(''))
 
 class VCDVCD(object):
 
@@ -252,7 +253,7 @@ class VCDVCD(object):
         :return: the signal for the given reference
         :rtype: Signal
         """
-        if isinstance(refname,re.Pattern):
+        if isinstance(refname, _RE_TYPE):
             l = []
             for aSignal in self.signals:
                 if ( refname.search(aSignal)):
@@ -368,7 +369,7 @@ class Scope(collections.MutableMapping):
         return self.subElements.__setitem__(k, v)
 
     def __getitem__(self, k) :
-        if isinstance(k, re.Pattern):
+        if isinstance(k, _RE_TYPE):
             pattern = '^'+re.escape(self.name)+'\.'+k.pattern
             return self.vcd[re.compile(pattern)]
         if k in self.subElements:
