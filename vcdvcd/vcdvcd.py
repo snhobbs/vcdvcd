@@ -222,6 +222,7 @@ class VCDVCD(object):
                 self.timescale["magnitude"] = magnitude
                 self.timescale["unit"]   = unit
                 self.timescale["factor"] = Decimal(factor)
+        callbacks.time(self, time, cur_sig_vals)
         for aSignal in filter( lambda x: isinstance(x, Signal),self.data.values()):
             aSignal.endtime = self.endtime
         vcd_file.close()
