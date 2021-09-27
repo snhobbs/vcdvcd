@@ -264,7 +264,6 @@ class VCDVCD(object):
                 entry.tv.append((time, value))
             cur_sig_vals[identifier_code] = value
 
-
     def __getitem__(self, refname):
         """
         :type refname: Union[str, re.Pattern]

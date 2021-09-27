@@ -7,8 +7,7 @@ from vcdvcd import VCDVCD
 import vcdvcd
 
 class Test(unittest.TestCase):
-    SMALL_CLOCK_VCD = '''
-$var reg 1 " clock $end
+    SMALL_CLOCK_VCD = '''$var reg 1 " clock $end
 $enddefinitions $end
 #0
 $dumpvars
@@ -20,8 +19,7 @@ $end
 0"
 '''
 
-    SINGLE_LINE_VALUE_CHANGE_VCD = '''
-$timescale 1 us $end
+    SINGLE_LINE_VALUE_CHANGE_VCD = '''$timescale 1 us $end
 $scope module X $end
 $var wire 1 ! D0 $end
 $var wire 1 " D1 $end
@@ -29,13 +27,13 @@ $upscope $end
 $enddefinitions $end
 
 #0  0! 1"
-#503236  1!
-#649868  0"
-#753652  1"
-#880824  0"
-#984044  1"
-#1110740  0"
-#1214876
+#10  1!
+#15  0"
+#20  1"
+#25  0"
+#30  1"
+#35  0"
+#40
 '''
 
     def test_data(self):
@@ -167,14 +165,14 @@ $enddefinitions $end
         D0 = vcd['X.D0']
         D1 = vcd['X.D1']
         self.assertEqual(D0[0], '0')
-        self.assertEqual(D0[503236], '1')
+        self.assertEqual(D0[10], '1')
 
         self.assertEqual(D1[0], '1')
-        self.assertEqual(D1[649868], '0')
-        self.assertEqual(D1[753652], '1')
-        self.assertEqual(D1[880824], '0')
-        self.assertEqual(D1[984044], '1')
-        self.assertEqual(D1[1110740], '0')
+        self.assertEqual(D1[15], '0')
+        self.assertEqual(D1[20], '1')
+        self.assertEqual(D1[25], '0')
+        self.assertEqual(D1[30], '1')
+        self.assertEqual(D1[35], '0')
 
 if __name__ == '__main__':
     unittest.main()
