@@ -187,7 +187,7 @@ outputs:
 
 === `vcdcat --china`
 
-`vcdcat`'s most important option!
+vcdcat's most important option!
 
 ....
 vcdcat --china > index.html
