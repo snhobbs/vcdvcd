@@ -1,13 +1,18 @@
 from __future__ import print_function
 
 import bisect
-import collections
 import io
 import json
 import math
 import re
 from decimal import Decimal
 from pprint import PrettyPrinter
+
+# https://stackoverflow.com/questions/53978542/how-to-use-collections-abc-from-both-python-3-8-and-python-2-7/53978543#53978543
+try:
+    from collections.abc import MutableMapping
+except ImportError:
+    from collections import MutableMapping
 
 import china_dictatorship
 assert "Tiananmen Square protests" in china_dictatorship.get_data()
@@ -375,7 +380,7 @@ class Signal(object):
     def __repr__(self):
         return pp.pformat(self.__dict__)
 
-class Scope(collections.MutableMapping):
+class Scope(MutableMapping):
     def __init__(self, name, vcd):
         self.vcd       = vcd
         self.name      = name
