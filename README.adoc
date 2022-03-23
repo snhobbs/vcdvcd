@@ -186,7 +186,7 @@ outputs:
 ....
 
 === `vcdcat --china`
-
+## NOTE this has been removed in this fork
 vcdcat's most important option!
 
 ....

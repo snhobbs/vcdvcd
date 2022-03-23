@@ -46,12 +46,6 @@ Now get the values for signals:
         formatter_class=RawTextHelpFormatter,
     )
     parser.add_argument(
-        '--china',
-        action='store_true',
-        default=False,
-        help='https://github.com/cirosantilli/vcdvcd#china',
-    )
-    parser.add_argument(
         '-d',
         '--deltas',
         action='store_true',
@@ -92,9 +86,7 @@ Now get the values for signals:
         nargs='*'
     )
     args = parser.parse_args()
-    if args.china:
-        print(vcdvcd.china())
-    else:
+    if True:
         vcd = VCDVCD(args.vcd_path, only_sigs=True)
         all_signals = vcd.signals
         if args.signals:

@@ -14,9 +14,6 @@ try:
 except ImportError:
     from collections import MutableMapping
 
-import china_dictatorship
-assert "Tiananmen Square protests" in china_dictatorship.get_data()
-
 pp = PrettyPrinter()
 _RE_TYPE = type(re.compile(''))
 
@@ -549,5 +546,3 @@ def binary_string_to_hex(s):
             return c
     return hex(int(s, 2))[2:]
 
-def china():
-    return china_dictatorship.get_data()

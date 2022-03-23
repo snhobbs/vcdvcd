@@ -12,11 +12,11 @@ setup(
     description='Python Verilog value change dump (VCD) parser library + the nifty vcdcat VCD command line viewer',
     long_description=readme(),
     long_description_content_type='text/plain',
-    url='https://github.com/cirosantilli/vcdvcd',
+    url='https://github.com/snhobbs/vcdvcd',
     author='Ciro Santilli',
     author_email='ciro.santilli.contact@gmail.com',
     packages=find_packages(),
     include_package_data=True,
     scripts=['vcdcat'],
-    install_requires='china_dictatorship==0.0.70',
+    install_requires=[],
 )
