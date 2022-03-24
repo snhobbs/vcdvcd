@@ -546,3 +546,49 @@ def binary_string_to_hex(s):
             return c
     return hex(int(s, 2))[2:]
 
+def condition_signal_tv(tv):
+    x, y = list(zip(*tv))
+    if not isinstance(y[0], int):
+        make_bin_to_int = lambda x : int(x, base=2)
+        #x = map(make_bin_to_int, x)
+        y = list(map(make_bin_to_int, y))
+    tv = list(zip(x, y))
+    return tv
+
+
+'''
+Function: expand_signal
+Makes a plottable dataset
+Inputs:
+    + xin: Array of clock positions where transitions occured
+    + yin: Array of transitions values
+    + length: Maximum data length, if not given the largest x value is used
+
+Returns:
+    + x_ex: x data for plotting
+    + y_ex: y data for plotting
+'''
+def expand_signal(xin, yin, length=None):
+    import numpy as np
+    import pandas as pd
+    xin = list(xin)
+    if not length:
+        length = max(xin)+1
+
+    # Select all points less than length, then add last point, extrapolting that the last point has no transitions
+    # This will always result in an accurate frame of the desired length
+    df = pd.DataFrame({"x": xin, "y": yin})
+    df = df[df["x"] < length]
+    df.loc[len(df)] = {'x': length-1, "y": list(df["y"])[-1]}
+
+    # At the transition add a double x point at the initial value before the change index
+    dout = {"x": [], "y": []}
+    for thisr, nextr in zip(df.iterrows(), list(df.iterrows())[1:]):
+        _, next = nextr
+        _, this = thisr
+        dout["x"].append(this["x"])
+        dout["y"].append(this["y"])
+
+        dout["x"].append(next["x"])
+        dout["y"].append(this["y"])
+    return dout['x'], dout['y']
