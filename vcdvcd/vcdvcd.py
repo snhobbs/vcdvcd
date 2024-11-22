@@ -21,7 +21,8 @@ class VCDVCD(object):
 
     # Verilog standard terminology.
     _VALUE = set(('0', '1', 'x', 'X', 'z', 'Z'))
-    _VECTOR_VALUE_CHANGE = set(('b', 'B', 'r', 'R'))
+    _VECTOR_VALUE_CHANGE = set(('b', 'B'))
+    _REAL_VALUE_CHANGE = set(('r', 'R'))
 
     def __init__(
         self,
@@ -144,6 +145,11 @@ class VCDVCD(object):
             self._add_value_identifier_code(
                 time, value, identifier_code, cur_sig_vals, callbacks)
 
+        def handle_real_value_change(line):
+            value, identifier_code = line[1:].split()
+            self._add_value_identifier_code(
+                time, float(value), identifier_code, cur_sig_vals, callbacks)
+
         if vcd_string is not None:
             vcd_file = io.StringIO(vcd_string)
         else:
@@ -175,6 +181,8 @@ class VCDVCD(object):
                             # because the value and identifier are separated by
                             # whitespace
                             raise Exception("Vector value changes have to be on a separate line!")
+            elif line0 in self._REAL_VALUE_CHANGE:
+                handle_real_value_change(line)
             elif line0 in self._VECTOR_VALUE_CHANGE:
                 handle_vector_value_change(line)
             elif line0 in self._VALUE:
@@ -548,7 +556,7 @@ def binary_string_to_hex(s):
 
 def condition_signal_tv(tv):
     x, y = list(zip(*tv))
-    if not isinstance(y[0], int):
+    if not (isinstance(y[0], int) or isinstance(y[0], float)):
         make_bin_to_int = lambda x : int(x, base=2)
         #x = map(make_bin_to_int, x)
         y = list(map(make_bin_to_int, y))
